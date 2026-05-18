@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ShippingDropLocation;
 use App\Models\User;
 
 class AdminTokenService
@@ -12,6 +13,22 @@ class AdminTokenService
             'user_id' => $user->id,
             'phone' => $user->phone,
             'role' => $user->role,
+            'context' => 'admin',
+            'issued_at' => now()->timestamp,
+            'expires_at' => now()->addHours(12)->timestamp,
+        ];
+
+        $payload['signature'] = $this->signature($payload);
+
+        return base64_encode(json_encode($payload));
+    }
+
+    public function issueForDropLocation(ShippingDropLocation $location, string $phone): string
+    {
+        $payload = [
+            'drop_location_id' => $location->id,
+            'phone' => $phone,
+            'role' => User::ROLE_ADMIN,
             'context' => 'admin',
             'issued_at' => now()->timestamp,
             'expires_at' => now()->addHours(12)->timestamp,

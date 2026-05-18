@@ -16,13 +16,15 @@ Route::prefix('v1')->group(function () {
     Route::post('/shipments', [ShipmentController::class, 'store']);
     Route::get('/shipments/{packageNumber}', [ShipmentController::class, 'show']);
 
-    Route::prefix('admin')->middleware('superadmin')->group(function () {
+    Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/shipments', [AdminShipmentController::class, 'index']);
         Route::patch('/shipments/{shipment}/status', [AdminShipmentController::class, 'updateStatus']);
         Route::post('/shipments/{shipment}/payment', [AdminShipmentController::class, 'recordPayment']);
         Route::post('/shipments/{shipment}/label-printed', [AdminShipmentController::class, 'markLabelPrinted']);
         Route::post('/shipments/{shipment}/postal-reference', [AdminShipmentController::class, 'recordPostalReference']);
+    });
 
+    Route::prefix('admin')->middleware('superadmin')->group(function () {
         Route::get('/drop-locations', [AdminShippingDropLocationController::class, 'index']);
         Route::post('/drop-locations', [AdminShippingDropLocationController::class, 'store']);
         Route::put('/drop-locations/{dropLocation}', [AdminShippingDropLocationController::class, 'update']);

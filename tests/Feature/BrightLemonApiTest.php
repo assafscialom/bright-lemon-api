@@ -72,6 +72,60 @@ class BrightLemonApiTest extends TestCase
             ->assertJsonStructure(['token']);
     }
 
+    public function test_active_drop_location_phone_can_verify_admin_otp(): void
+    {
+        ShippingDropLocation::create([
+            'code' => 'TLV-002',
+            'name' => 'Tel Aviv Partner Drop',
+            'country' => 'Israel',
+            'city' => 'Tel Aviv',
+            'address_line_1' => 'Allenby 1',
+            'phone' => '+972544522993',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->postJson('/api/v1/auth/otp/send', [
+            'country_code' => '+972',
+            'mobile' => '0544522993',
+            'context' => 'admin',
+        ])
+            ->assertOk();
+
+        $this->postJson('/api/v1/auth/otp/verify', [
+            'country_code' => '+972',
+            'mobile' => '0544522993',
+            'context' => 'admin',
+            'code' => '123456',
+        ])
+            ->assertOk()
+            ->assertJsonPath('user.role', User::ROLE_ADMIN)
+            ->assertJsonPath('user.name', 'Tel Aviv Partner Drop')
+            ->assertJsonStructure(['token']);
+    }
+
+    public function test_drop_location_admin_can_access_shipments_but_not_manage_locations(): void
+    {
+        $location = ShippingDropLocation::create([
+            'code' => 'TLV-003',
+            'name' => 'Tel Aviv Operations Drop',
+            'country' => 'Israel',
+            'city' => 'Tel Aviv',
+            'address_line_1' => 'Rothschild 1',
+            'phone' => '+9720544522993',
+            'is_active' => true,
+            'sort_order' => 1,
+        ]);
+        $token = app(AdminTokenService::class)->issueForDropLocation($location, '+9720544522993');
+
+        $this->withToken($token)->getJson('/api/v1/admin/shipments')
+            ->assertOk();
+
+        $this->withToken($token)->getJson('/api/v1/admin/drop-locations')
+            ->assertForbidden()
+            ->assertJsonPath('message', 'Admin access denied.');
+    }
+
     public function test_superadmin_can_manage_shipping_drop_locations(): void
     {
         $token = $this->superAdminToken();

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ShippingDropLocation;
 use App\Models\User;
 use App\Services\AdminTokenService;
 use App\Services\PhoneService;
@@ -23,7 +24,11 @@ class AuthOtpController extends Controller
 
         $phone = $phones->normalize($data['country_code'], $data['mobile']);
 
-        if ($data['context'] === 'admin' && ! $this->findSuperAdminByPhone($phone)) {
+        if (
+            $data['context'] === 'admin'
+            && ! $this->findSuperAdminByPhone($phone)
+            && ! $this->findAdminDropLocationByPhone($phone, $data['mobile'])
+        ) {
             return response()->json([
                 'message' => 'This phone number is not allowed to access admin.',
             ], 403);
@@ -48,11 +53,15 @@ class AuthOtpController extends Controller
 
         $phone = $phones->normalize($data['country_code'], $data['mobile']);
         $adminUser = null;
+        $adminDropLocation = null;
 
         if ($data['context'] === 'admin') {
             $adminUser = $this->findSuperAdminByPhone($phone);
+            $adminDropLocation = $adminUser
+                ? null
+                : $this->findAdminDropLocationByPhone($phone, $data['mobile']);
 
-            if (! $adminUser) {
+            if (! $adminUser && ! $adminDropLocation) {
                 return response()->json([
                     'message' => 'This phone number is not allowed to access admin.',
                 ], 403);
@@ -76,12 +85,21 @@ class AuthOtpController extends Controller
             'message' => 'Verified successfully.',
             'phone' => $phone,
             'context' => $data['context'],
-            'token' => $adminUser ? $tokens->issue($adminUser) : base64_encode(json_encode($tokenPayload)),
+            'token' => $adminUser
+                ? $tokens->issue($adminUser)
+                : ($adminDropLocation
+                    ? $tokens->issueForDropLocation($adminDropLocation, $phone)
+                    : base64_encode(json_encode($tokenPayload))),
             'user' => $adminUser ? [
                 'id' => $adminUser->id,
                 'name' => $adminUser->name,
                 'role' => $adminUser->role,
-            ] : null,
+            ] : ($adminDropLocation ? [
+                'id' => null,
+                'name' => $adminDropLocation->name,
+                'role' => User::ROLE_ADMIN,
+                'drop_location_id' => $adminDropLocation->id,
+            ] : null),
             'demo' => true,
         ]);
     }
@@ -92,5 +110,27 @@ class AuthOtpController extends Controller
             ->where('phone', $phone)
             ->where('role', User::ROLE_SUPERADMIN)
             ->first();
+    }
+
+    private function findAdminDropLocationByPhone(string $normalizedPhone, string $mobile): ?ShippingDropLocation
+    {
+        $normalizedDigits = preg_replace('/\D+/', '', $normalizedPhone) ?? '';
+        $mobileDigits = preg_replace('/\D+/', '', $mobile) ?? '';
+
+        return ShippingDropLocation::query()
+            ->where('is_active', true)
+            ->whereNotNull('phone')
+            ->get()
+            ->first(function (ShippingDropLocation $location) use ($normalizedDigits, $mobileDigits) {
+                $locationDigits = preg_replace('/\D+/', '', (string) $location->phone) ?? '';
+                $mobileWithoutLeadingZero = ltrim($mobileDigits, '0');
+
+                return $locationDigits !== ''
+                    && (
+                        $locationDigits === $normalizedDigits
+                        || $locationDigits === $mobileDigits
+                        || ($mobileWithoutLeadingZero !== '' && str_ends_with($locationDigits, $mobileWithoutLeadingZero))
+                    );
+            });
     }
 }
