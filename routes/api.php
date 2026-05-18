@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AdminShipmentController;
+use App\Http\Controllers\Api\AdminShippingDropLocationController;
 use App\Http\Controllers\Api\AuthOtpController;
 use App\Http\Controllers\Api\ShipmentController;
 use Illuminate\Support\Facades\Route;
@@ -21,5 +22,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/shipments/{shipment}/payment', [AdminShipmentController::class, 'recordPayment']);
         Route::post('/shipments/{shipment}/label-printed', [AdminShipmentController::class, 'markLabelPrinted']);
         Route::post('/shipments/{shipment}/postal-reference', [AdminShipmentController::class, 'recordPostalReference']);
+
+        Route::get('/drop-locations', [AdminShippingDropLocationController::class, 'index']);
+        Route::post('/drop-locations', [AdminShippingDropLocationController::class, 'store']);
+        Route::put('/drop-locations/{dropLocation}', [AdminShippingDropLocationController::class, 'update']);
+        Route::delete('/drop-locations/{dropLocation}', [AdminShippingDropLocationController::class, 'destroy']);
     });
 });
