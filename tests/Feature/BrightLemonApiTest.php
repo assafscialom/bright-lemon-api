@@ -18,6 +18,9 @@ class BrightLemonApiTest extends TestCase
         $shipment = $this->postJson('/api/v1/shipments', $this->shipmentPayload())
             ->assertCreated()
             ->assertJsonPath('data.status', 'Registered')
+            ->assertJsonPath('data.declared_value', 120)
+            ->assertJsonPath('data.shipping_price', null)
+            ->assertJsonPath('data.shipping_quote.status', null)
             ->assertJsonPath('data.sender.phone_normalized', '+9720501234567')
             ->json('data');
 
@@ -35,13 +38,87 @@ class BrightLemonApiTest extends TestCase
             ->assertCreated()
             ->json('data');
 
-        $this->withToken($this->superAdminToken())->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
+        $token = $this->superAdminToken();
+
+        $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/shipping-quote")
+            ->assertOk()
+            ->assertJsonPath('data.shipping_quote.status', 'quoted')
+            ->assertJsonPath('data.shipping_quote.currency', 'ILS');
+
+        $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
             'invoice_number' => 'INV-1001',
         ])
             ->assertOk()
             ->assertJsonPath('data.status', 'Paid')
             ->assertJsonPath('data.invoice_number', 'INV-1001')
             ->assertJsonPath('data.payment_ref', 'PAY-'.$shipment['package_number']);
+    }
+
+    public function test_admin_payment_requires_shipping_quote(): void
+    {
+        $shipment = $this->postJson('/api/v1/shipments', $this->shipmentPayload())
+            ->assertCreated()
+            ->json('data');
+
+        $this->withToken($this->superAdminToken())->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
+            'invoice_number' => 'INV-1001',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'Get an EMS shipping quote before recording payment.');
+    }
+
+    public function test_admin_can_request_ems_quote_from_rate_api(): void
+    {
+        config([
+            'brightlemon.ems.rate_api_url' => 'https://rates.example.test',
+            'brightlemon.ems.sender.city' => 'Tel Aviv',
+            'brightlemon.ems.sender.postal_code' => '6100001',
+        ]);
+
+        Http::fake([
+            'https://rates.example.test/api/v1/rates' => Http::response([
+                'success' => true,
+                'message' => 'Shipping rates',
+                'data' => [
+                    [
+                        'amount' => 118.75,
+                        'currency' => 'ILS',
+                        'provider' => 'israel_post',
+                        'servicelevel' => [
+                            'name' => 'Israel Post EMS',
+                            'token' => 'israel_post_ems',
+                        ],
+                    ],
+                ],
+                'errors' => [],
+            ]),
+        ]);
+
+        $shipment = $this->postJson('/api/v1/shipments', $this->shipmentPayload())
+            ->assertCreated()
+            ->json('data');
+
+        $this->withToken($this->superAdminToken())->postJson("/api/v1/admin/shipments/{$shipment['id']}/shipping-quote")
+            ->assertOk()
+            ->assertJsonPath('data.declared_value', 120)
+            ->assertJsonPath('data.shipping_price', 118.75)
+            ->assertJsonPath('data.shipping_price_currency', 'ILS')
+            ->assertJsonPath('data.shipping_quote.service', 'Israel Post EMS');
+
+        $this->assertDatabaseHas('shipments', [
+            'id' => $shipment['id'],
+            'shipping_price' => 118.75,
+            'shipping_price_currency' => 'ILS',
+            'shipping_quote_status' => 'quoted',
+        ]);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://rates.example.test/api/v1/rates'
+                && $request['shipping_providers'][0]['id'] === 'israel_post'
+                && $request['shipping_providers'][0]['parameters']['servicelevel_tokens'][0] === 'israel_post_ems'
+                && $request['address_to']['country_code'] === 'DE'
+                && $request['parcels'][0]['weight'] === 2.0;
+        });
     }
 
     public function test_admin_payment_creates_ems_order_when_enabled(): void
@@ -87,7 +164,12 @@ class BrightLemonApiTest extends TestCase
             ->assertCreated()
             ->json('data');
 
-        $this->withToken($this->superAdminToken())->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
+        $token = $this->superAdminToken();
+
+        $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/shipping-quote")
+            ->assertOk();
+
+        $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
             'invoice_number' => 'INV-EMS-1001',
         ])
             ->assertOk()

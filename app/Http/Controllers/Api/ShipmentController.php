@@ -99,7 +99,7 @@ class ShipmentController extends Controller
                 'weight_label' => $data['customs']['weight'],
                 'weight_kg' => $pricing->weightKgForLabel($data['customs']['weight']),
                 'declared_value' => $data['customs']['declared_value'],
-                'shipping_price' => $pricing->priceForWeightLabel($data['customs']['weight']),
+                'shipping_price' => 0,
 
                 'recipient_first_name' => $data['recipient']['first_name'],
                 'recipient_middle_name' => $data['recipient']['middle_name'] ?? null,

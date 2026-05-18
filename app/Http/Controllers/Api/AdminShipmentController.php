@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\ShipmentResource;
 use App\Models\Shipment;
 use App\Services\EmsShipmentService;
+use App\Services\IsraelPostQuoteService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\JsonResponse;
@@ -67,12 +68,33 @@ class AdminShipmentController extends Controller
         return new ShipmentResource($shipment->refresh());
     }
 
+    public function quoteShipping(Shipment $shipment, IsraelPostQuoteService $quotes): ShipmentResource|JsonResponse
+    {
+        try {
+            $shipment = $quotes->quoteForShipment($shipment);
+        } catch (EmsShipmentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'data' => new ShipmentResource($shipment->refresh()),
+            ], 502);
+        }
+
+        return new ShipmentResource($shipment->refresh());
+    }
+
     public function recordPayment(Request $request, Shipment $shipment, EmsShipmentService $ems): ShipmentResource|JsonResponse
     {
         $data = $request->validate([
             'payment_ref' => ['nullable', 'string', 'max:80'],
             'invoice_number' => ['nullable', 'string', 'max:80'],
         ]);
+
+        if (! $shipment->shipping_quoted_at || (float) $shipment->shipping_price <= 0) {
+            return response()->json([
+                'message' => 'Get an EMS shipping quote before recording payment.',
+                'data' => new ShipmentResource($shipment->refresh()),
+            ], 422);
+        }
 
         $shipment->update([
             'status' => Shipment::STATUS_PAID,

@@ -36,6 +36,7 @@ class Shipment extends Model
             'paid_at' => 'datetime',
             'label_printed_at' => 'datetime',
             'ems_created_at' => 'datetime',
+            'shipping_quoted_at' => 'datetime',
         ];
     }
 }

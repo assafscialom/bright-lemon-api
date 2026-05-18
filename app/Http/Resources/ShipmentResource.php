@@ -27,6 +27,8 @@ class ShipmentResource extends JsonResource
             $this->destination_country,
         ]));
 
+        $shippingPrice = $this->shipping_quoted_at ? (float) $this->shipping_price : null;
+
         return [
             'id' => $this->id,
             'package_number' => $this->package_number,
@@ -69,12 +71,22 @@ class ShipmentResource extends JsonResource
                 'weight' => $this->weight_label,
                 'weight_kg' => (float) $this->weight_kg,
                 'declared_value' => (float) $this->declared_value,
-                'shipping_price' => (float) $this->shipping_price,
+                'shipping_price' => $shippingPrice,
+                'shipping_price_currency' => $this->shipping_price_currency,
             ],
             'weight' => $this->weight_label,
             'weight_kg' => (float) $this->weight_kg,
             'declared_value' => (float) $this->declared_value,
-            'shipping_price' => (float) $this->shipping_price,
+            'shipping_price' => $shippingPrice,
+            'shipping_price_currency' => $this->shipping_price_currency,
+            'shipping_quote' => [
+                'status' => $this->shipping_quote_status,
+                'service' => $this->shipping_quote_service,
+                'amount' => $shippingPrice,
+                'currency' => $this->shipping_price_currency,
+                'error' => $this->shipping_quote_error,
+                'quoted_at' => $this->shipping_quoted_at?->toISOString(),
+            ],
             'payment_ref' => $this->payment_ref,
             'invoice_number' => $this->invoice_number,
             'postal_ref' => $this->postal_ref,
