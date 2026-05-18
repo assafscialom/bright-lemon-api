@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
+use App\Services\AdminTokenService;
 use App\Services\PhoneService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +23,12 @@ class AuthOtpController extends Controller
 
         $phone = $phones->normalize($data['country_code'], $data['mobile']);
 
+        if ($data['context'] === 'admin' && ! $this->findSuperAdminByPhone($phone)) {
+            return response()->json([
+                'message' => 'This phone number is not allowed to access admin.',
+            ], 403);
+        }
+
         return response()->json([
             'message' => 'Verification code sent.',
             'phone' => $phone,
@@ -29,7 +37,7 @@ class AuthOtpController extends Controller
         ]);
     }
 
-    public function verify(Request $request, PhoneService $phones): JsonResponse
+    public function verify(Request $request, PhoneService $phones, AdminTokenService $tokens): JsonResponse
     {
         $data = $request->validate([
             'country_code' => ['required', 'string', 'max:8'],
@@ -38,13 +46,25 @@ class AuthOtpController extends Controller
             'code' => ['required', 'string', 'size:6'],
         ]);
 
+        $phone = $phones->normalize($data['country_code'], $data['mobile']);
+        $adminUser = null;
+
+        if ($data['context'] === 'admin') {
+            $adminUser = $this->findSuperAdminByPhone($phone);
+
+            if (! $adminUser) {
+                return response()->json([
+                    'message' => 'This phone number is not allowed to access admin.',
+                ], 403);
+            }
+        }
+
         if (! hash_equals(config('brightlemon.demo_otp'), $data['code'])) {
             return response()->json([
                 'message' => 'Invalid verification code.',
             ], 422);
         }
 
-        $phone = $phones->normalize($data['country_code'], $data['mobile']);
         $tokenPayload = [
             'phone' => $phone,
             'context' => $data['context'],
@@ -56,8 +76,21 @@ class AuthOtpController extends Controller
             'message' => 'Verified successfully.',
             'phone' => $phone,
             'context' => $data['context'],
-            'token' => base64_encode(json_encode($tokenPayload)),
+            'token' => $adminUser ? $tokens->issue($adminUser) : base64_encode(json_encode($tokenPayload)),
+            'user' => $adminUser ? [
+                'id' => $adminUser->id,
+                'name' => $adminUser->name,
+                'role' => $adminUser->role,
+            ] : null,
             'demo' => true,
         ]);
+    }
+
+    private function findSuperAdminByPhone(string $phone): ?User
+    {
+        return User::query()
+            ->where('phone', $phone)
+            ->where('role', User::ROLE_SUPERADMIN)
+            ->first();
     }
 }

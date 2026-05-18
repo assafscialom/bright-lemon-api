@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
+use App\Services\AdminTokenService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,13 +33,42 @@ class BrightLemonApiTest extends TestCase
             ->assertCreated()
             ->json('data');
 
-        $this->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
+        $this->withToken($this->superAdminToken())->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
             'invoice_number' => 'INV-1001',
         ])
             ->assertOk()
             ->assertJsonPath('data.status', 'Paid')
             ->assertJsonPath('data.invoice_number', 'INV-1001')
             ->assertJsonPath('data.payment_ref', 'PAY-'.$shipment['package_number']);
+    }
+
+    public function test_admin_otp_rejects_phone_numbers_without_superadmin_user(): void
+    {
+        $this->postJson('/api/v1/auth/otp/send', [
+            'country_code' => '+972',
+            'mobile' => '0501234567',
+            'context' => 'admin',
+        ])
+            ->assertForbidden()
+            ->assertJsonPath('message', 'This phone number is not allowed to access admin.');
+    }
+
+    public function test_superadmin_can_verify_otp_with_phone_number(): void
+    {
+        User::factory()->create([
+            'phone' => '+9720501234567',
+            'role' => User::ROLE_SUPERADMIN,
+        ]);
+
+        $this->postJson('/api/v1/auth/otp/verify', [
+            'country_code' => '+972',
+            'mobile' => '0501234567',
+            'context' => 'admin',
+            'code' => '123456',
+        ])
+            ->assertOk()
+            ->assertJsonPath('user.role', User::ROLE_SUPERADMIN)
+            ->assertJsonStructure(['token']);
     }
 
     public function test_demo_otp_verification_rejects_wrong_codes(): void
@@ -86,5 +117,15 @@ class BrightLemonApiTest extends TestCase
                 'mobile' => '3011223344',
             ],
         ];
+    }
+
+    private function superAdminToken(): string
+    {
+        $user = User::factory()->create([
+            'phone' => '+9720501234567',
+            'role' => User::ROLE_SUPERADMIN,
+        ]);
+
+        return app(AdminTokenService::class)->issue($user);
     }
 }
