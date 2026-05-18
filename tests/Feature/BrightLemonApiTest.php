@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\ShippingDropLocation;
 use App\Services\AdminTokenService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class BrightLemonApiTest extends TestCase
@@ -41,6 +42,74 @@ class BrightLemonApiTest extends TestCase
             ->assertJsonPath('data.status', 'Paid')
             ->assertJsonPath('data.invoice_number', 'INV-1001')
             ->assertJsonPath('data.payment_ref', 'PAY-'.$shipment['package_number']);
+    }
+
+    public function test_admin_payment_creates_ems_order_when_enabled(): void
+    {
+        config([
+            'brightlemon.ems.enabled' => true,
+            'brightlemon.ems.api_url' => 'https://ems.example.test',
+            'brightlemon.ems.subscription_key' => 'subscription-key',
+            'brightlemon.ems.username' => 'ems-user',
+            'brightlemon.ems.password' => 'ems-password',
+            'brightlemon.ems.partner_code' => '400327',
+            'brightlemon.ems.sender.name' => 'Ship Home',
+            'brightlemon.ems.sender.address_line_1' => 'Dizengoff 100',
+            'brightlemon.ems.sender.city' => 'Tel Aviv',
+            'brightlemon.ems.sender.postal_code' => '6100001',
+            'brightlemon.ems.sender.phone' => '+972544522993',
+            'brightlemon.ems.sender.email' => 'ops@example.com',
+        ]);
+
+        Http::fake([
+            'https://ems.example.test/Export/GetToken' => Http::response([
+                'IsSuccess' => true,
+                'AccessToken' => 'token-123',
+                'AccessTokenType' => 'Bearer',
+                'ExpireIn' => 3600,
+            ]),
+            'https://ems.example.test/Export/SendParcelInfo' => Http::response([
+                'Errors' => [],
+                'Warnings' => [],
+                'Parcels' => [
+                    [
+                        'TrackingNumber' => 'EE123456789IL',
+                        'LabelsFiles' => [
+                            'FileContent' => base64_encode('%PDF label'),
+                            'FileExtension' => 'PDF',
+                        ],
+                    ],
+                ],
+            ]),
+        ]);
+
+        $shipment = $this->postJson('/api/v1/shipments', $this->shipmentPayload())
+            ->assertCreated()
+            ->json('data');
+
+        $this->withToken($this->superAdminToken())->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
+            'invoice_number' => 'INV-EMS-1001',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.invoice_number', 'INV-EMS-1001')
+            ->assertJsonPath('data.postal_ref', 'EE123456789IL')
+            ->assertJsonPath('data.ems.status', 'created')
+            ->assertJsonPath('data.ems.tracking_number', 'EE123456789IL')
+            ->assertJsonPath('data.ems.label.extension', 'pdf');
+
+        $this->assertDatabaseHas('shipments', [
+            'id' => $shipment['id'],
+            'ems_status' => 'created',
+            'ems_tracking_number' => 'EE123456789IL',
+            'postal_ref' => 'EE123456789IL',
+        ]);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://ems.example.test/Export/SendParcelInfo'
+                && $request['Items'][0]['ServiceTypeCode'] === 4
+                && $request['Items'][0]['OrderReference'] === 'INV-EMS-1001'
+                && $request['Items'][0]['Recipient']['CountryCode'] === 'DE';
+        });
     }
 
     public function test_admin_otp_rejects_phone_numbers_without_superadmin_user(): void

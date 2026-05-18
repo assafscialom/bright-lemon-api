@@ -35,6 +35,7 @@ class Shipment extends Model
             'weight_kg' => 'decimal:2',
             'paid_at' => 'datetime',
             'label_printed_at' => 'datetime',
+            'ems_created_at' => 'datetime',
         ];
     }
 }

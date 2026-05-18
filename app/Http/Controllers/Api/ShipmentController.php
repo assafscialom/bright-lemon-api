@@ -68,6 +68,7 @@ class ShipmentController extends Controller
             'recipient.street' => ['required', 'string', 'max:160'],
             'recipient.number' => ['nullable', 'string', 'max:30'],
             'recipient.po_box' => ['nullable', 'string', 'max:50'],
+            'recipient.postal_code' => ['nullable', 'string', 'max:30'],
             'recipient.country_code' => ['required', 'string', 'max:8'],
             'recipient.mobile' => ['required', 'string', 'max:30'],
         ]);
@@ -108,6 +109,7 @@ class ShipmentController extends Controller
                 'recipient_street' => $data['recipient']['street'],
                 'recipient_number' => $data['recipient']['number'] ?? null,
                 'recipient_po_box' => $data['recipient']['po_box'] ?? null,
+                'recipient_postal_code' => $data['recipient']['postal_code'] ?? null,
                 'recipient_country_code' => $data['recipient']['country_code'],
                 'recipient_mobile' => $data['recipient']['mobile'],
                 'recipient_phone_normalized' => $phones->normalize($data['recipient']['country_code'], $data['recipient']['mobile']),

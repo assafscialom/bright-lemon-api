@@ -61,6 +61,7 @@ class ShipmentResource extends JsonResource
                 'street' => $this->recipient_street,
                 'number' => $this->recipient_number,
                 'po_box' => $this->recipient_po_box,
+                'postal_code' => $this->recipient_postal_code,
             ],
             'customs' => [
                 'package_type' => $this->package_type,
@@ -77,6 +78,17 @@ class ShipmentResource extends JsonResource
             'payment_ref' => $this->payment_ref,
             'invoice_number' => $this->invoice_number,
             'postal_ref' => $this->postal_ref,
+            'ems' => [
+                'status' => $this->ems_status,
+                'tracking_number' => $this->ems_tracking_number,
+                'error' => $this->ems_error,
+                'created_at' => $this->ems_created_at?->toISOString(),
+                'label' => $this->ems_label_content ? [
+                    'format' => $this->ems_label_format,
+                    'extension' => $this->ems_label_extension,
+                    'content' => $this->ems_label_content,
+                ] : null,
+            ],
             'paid_at' => $this->paid_at?->toISOString(),
             'label_printed_at' => $this->label_printed_at?->toISOString(),
             'passport_file_url' => $this->passport_file_path

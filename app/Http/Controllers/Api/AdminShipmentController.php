@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exceptions\EmsShipmentException;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ShipmentResource;
 use App\Models\Shipment;
+use App\Services\EmsShipmentService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\Rule;
 
 class AdminShipmentController extends Controller
@@ -64,7 +67,7 @@ class AdminShipmentController extends Controller
         return new ShipmentResource($shipment->refresh());
     }
 
-    public function recordPayment(Request $request, Shipment $shipment): ShipmentResource
+    public function recordPayment(Request $request, Shipment $shipment, EmsShipmentService $ems): ShipmentResource|JsonResponse
     {
         $data = $request->validate([
             'payment_ref' => ['nullable', 'string', 'max:80'],
@@ -77,6 +80,15 @@ class AdminShipmentController extends Controller
             'invoice_number' => $data['invoice_number'] ?? $shipment->invoice_number,
             'paid_at' => $shipment->paid_at ?? now(),
         ]);
+
+        try {
+            $shipment = $ems->createOrderForShipment($shipment->refresh());
+        } catch (EmsShipmentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'data' => new ShipmentResource($shipment->refresh()),
+            ], 502);
+        }
 
         return new ShipmentResource($shipment->refresh());
     }
