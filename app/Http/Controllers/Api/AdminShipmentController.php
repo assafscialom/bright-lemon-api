@@ -116,6 +116,13 @@ class AdminShipmentController extends Controller
             ], 502);
         }
 
+        if (! $shipment->ems_label_content) {
+            return response()->json([
+                'message' => 'EMS label was not created.',
+                'data' => new ShipmentResource($shipment->refresh()),
+            ], 502);
+        }
+
         return new ShipmentResource($shipment->refresh());
     }
 

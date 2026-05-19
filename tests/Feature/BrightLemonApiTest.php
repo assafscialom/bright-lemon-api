@@ -6,6 +6,7 @@ use App\Models\ShippingDropLocation;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Services\AdminTokenService;
+use App\Services\EmsShipmentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -194,6 +195,34 @@ class BrightLemonApiTest extends TestCase
                 && $request['Items'][0]['OrderReference'] === 'INV-EMS-1001'
                 && $request['Items'][0]['Recipient']['CountryCode'] === 'DE';
         });
+    }
+
+    public function test_admin_payment_fails_if_ems_service_returns_without_label(): void
+    {
+        config(['brightlemon.ems.enabled' => true]);
+
+        $this->mock(EmsShipmentService::class, function ($mock) {
+            $mock->shouldReceive('createOrderForShipment')
+                ->once()
+                ->andReturnUsing(fn (Shipment $shipment) => $shipment->refresh());
+        });
+
+        $shipment = $this->postJson('/api/v1/shipments', $this->shipmentPayload())
+            ->assertCreated()
+            ->json('data');
+
+        $token = $this->superAdminToken();
+
+        $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/shipping-quote")
+            ->assertOk();
+
+        $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
+            'invoice_number' => 'INV-NO-LABEL',
+        ])
+            ->assertStatus(502)
+            ->assertJsonPath('message', 'EMS label was not created.')
+            ->assertJsonPath('data.ems.label', null)
+            ->assertJsonPath('data.ems.tracking_number', null);
     }
 
     public function test_admin_cannot_mark_label_printed_before_ems_label_is_ready(): void
