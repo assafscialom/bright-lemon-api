@@ -33,7 +33,7 @@ class BrightLemonApiTest extends TestCase
             ->assertJsonPath('data.0.package_number', $shipment['package_number']);
     }
 
-    public function test_admin_can_record_payment_for_shipment(): void
+    public function test_admin_payment_requires_ems_integration_to_create_label(): void
     {
         $shipment = $this->postJson('/api/v1/shipments', $this->shipmentPayload())
             ->assertCreated()
@@ -49,7 +49,8 @@ class BrightLemonApiTest extends TestCase
         $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
             'invoice_number' => 'INV-1001',
         ])
-            ->assertOk()
+            ->assertStatus(502)
+            ->assertJsonPath('message', 'EMS integration is disabled.')
             ->assertJsonPath('data.status', 'Paid')
             ->assertJsonPath('data.invoice_number', 'INV-1001')
             ->assertJsonPath('data.payment_ref', 'PAY-'.$shipment['package_number']);
@@ -209,7 +210,8 @@ class BrightLemonApiTest extends TestCase
         $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
             'invoice_number' => 'INV-1001',
         ])
-            ->assertOk()
+            ->assertStatus(502)
+            ->assertJsonPath('message', 'EMS integration is disabled.')
             ->assertJsonPath('data.status', Shipment::STATUS_PAID)
             ->assertJsonPath('data.ems.label', null);
 

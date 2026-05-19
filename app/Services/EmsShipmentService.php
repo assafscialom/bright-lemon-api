@@ -14,7 +14,7 @@ class EmsShipmentService
     public function createOrderForShipment(Shipment $shipment): Shipment
     {
         if (! config('brightlemon.ems.enabled')) {
-            return $shipment;
+            throw new EmsShipmentException('EMS integration is disabled.');
         }
 
         if ($shipment->ems_tracking_number && $shipment->ems_label_content) {
