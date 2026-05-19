@@ -8,10 +8,12 @@ return [
     'ems' => [
         'enabled' => filter_var(env('BRIGHT_LEMON_EMS_ENABLED', false), FILTER_VALIDATE_BOOL),
         'mode' => env('ISRAEL_POST_SDK_MODE', 'test'),
-        'api_url' => env('ISRAEL_POST_SDK_MODE', 'test') === 'live'
+        'api_url' => env('ISRAEL_POST_SDK_API_URL') ?: (env('ISRAEL_POST_SDK_MODE', 'test') === 'live'
             ? 'https://apimftprd.israelpost.co.il'
-            : 'https://apimfttst.israelpost.co.il',
-        'subscription_key' => env('ISRAEL_POST_SDK_AUTH_INTERNATIONAL_SUBSCRIPTION_KEY_METHODS'),
+            : 'https://apimfttst.israelpost.co.il'),
+        'subscription_key' => env('ISRAEL_POST_SDK_AUTH_INTERNATIONAL_SUBSCRIPTION_KEY_METHODS')
+            ?: env('ISRAEL_POST_SDK_AUTH_SEND_PARCEL_INFO_API_OCP_APIM_SUBSCRIPTION_KEY')
+            ?: env('ISRAEL_POST_SDK_AUTH_OCP_APIM_SUBSCRIPTION_KEY'),
         'username' => env('ISRAEL_POST_SDK_AUTH_USERNAME'),
         'password' => env('ISRAEL_POST_SDK_AUTH_PASSWORD'),
         'partner_code' => env('ISRAEL_POST_SDK_SETTINGS_INTL_PARTNER_CODE', '400327'),

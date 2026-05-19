@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\EmsShipmentException;
 use App\Models\Shipment;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -25,8 +26,7 @@ class EmsShipmentService
         $requestBody = $this->buildShipmentRequestBody($shipment);
 
         try {
-            $response = Http::timeout((int) config('brightlemon.ems.timeout', 30))
-                ->withHeader('Ocp-Apim-Subscription-Key', $this->subscriptionKey())
+            $response = $this->http()
                 ->withToken($this->accessToken())
                 ->post($this->apiUrl('SendParcelInfo'), $requestBody);
         } catch (\Throwable $e) {
@@ -181,8 +181,7 @@ class EmsShipmentService
     private function accessToken(): string
     {
         try {
-            $response = Http::timeout((int) config('brightlemon.ems.timeout', 30))
-                ->withHeader('Ocp-Apim-Subscription-Key', $this->subscriptionKey())
+            $response = $this->http()
                 ->post($this->apiUrl('GetToken'), [
                     'Username' => config('brightlemon.ems.username'),
                     'Password' => config('brightlemon.ems.password'),
@@ -207,7 +206,17 @@ class EmsShipmentService
 
     private function subscriptionKey(): string
     {
-        return (string) config('brightlemon.ems.subscription_key');
+        return trim((string) config('brightlemon.ems.subscription_key'));
+    }
+
+    private function http(): PendingRequest
+    {
+        $request = Http::timeout((int) config('brightlemon.ems.timeout', 30));
+        $subscriptionKey = $this->subscriptionKey();
+
+        return $subscriptionKey === ''
+            ? $request
+            : $request->withHeader('Ocp-Apim-Subscription-Key', $subscriptionKey);
     }
 
     private function countryCodeFor(string $country): string
