@@ -2,8 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\ShippingDropLocation;
+use App\Models\Shipment;
+use App\Models\User;
 use App\Services\AdminTokenService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
@@ -192,6 +193,57 @@ class BrightLemonApiTest extends TestCase
                 && $request['Items'][0]['OrderReference'] === 'INV-EMS-1001'
                 && $request['Items'][0]['Recipient']['CountryCode'] === 'DE';
         });
+    }
+
+    public function test_admin_cannot_mark_label_printed_before_ems_label_is_ready(): void
+    {
+        $shipment = $this->postJson('/api/v1/shipments', $this->shipmentPayload())
+            ->assertCreated()
+            ->json('data');
+
+        $token = $this->superAdminToken();
+
+        $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/shipping-quote")
+            ->assertOk();
+
+        $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/payment", [
+            'invoice_number' => 'INV-1001',
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.status', Shipment::STATUS_PAID)
+            ->assertJsonPath('data.ems.label', null);
+
+        $this->withToken($token)->postJson("/api/v1/admin/shipments/{$shipment['id']}/label-printed")
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'EMS label is not ready.')
+            ->assertJsonPath('data.status', Shipment::STATUS_PAID);
+
+        $this->withToken($token)->patchJson("/api/v1/admin/shipments/{$shipment['id']}/status", [
+            'status' => Shipment::STATUS_LABEL_PRINTED,
+        ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'EMS label is not ready.')
+            ->assertJsonPath('data.status', Shipment::STATUS_PAID);
+    }
+
+    public function test_label_printed_status_is_reported_as_paid_when_ems_label_is_missing(): void
+    {
+        $shipment = $this->postJson('/api/v1/shipments', $this->shipmentPayload())
+            ->assertCreated()
+            ->json('data');
+
+        $model = Shipment::findOrFail($shipment['id']);
+        $model->update([
+            'status' => Shipment::STATUS_LABEL_PRINTED,
+            'invoice_number' => 'INV-1001',
+            'paid_at' => now(),
+            'label_printed_at' => now(),
+            'ems_label_content' => null,
+        ]);
+
+        $this->withToken($this->superAdminToken())->getJson('/api/v1/admin/shipments')
+            ->assertOk()
+            ->assertJsonPath('data.0.status', Shipment::STATUS_PAID);
     }
 
     public function test_admin_otp_rejects_phone_numbers_without_superadmin_user(): void

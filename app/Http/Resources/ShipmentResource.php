@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Models\Shipment;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -28,6 +29,11 @@ class ShipmentResource extends JsonResource
         ]));
 
         $shippingPrice = $this->shipping_quoted_at ? (float) $this->shipping_price : null;
+        $status = $this->status;
+
+        if ($status === Shipment::STATUS_LABEL_PRINTED && ! $this->ems_label_content) {
+            $status = $this->paid_at ? Shipment::STATUS_PAID : Shipment::STATUS_PENDING_PAYMENT;
+        }
 
         return [
             'id' => $this->id,
@@ -35,7 +41,7 @@ class ShipmentResource extends JsonResource
             'date' => $this->created_at?->format('d/m/Y'),
             'created_at' => $this->created_at?->toISOString(),
             'branch' => $this->branch_name,
-            'status' => $this->status,
+            'status' => $status,
             'sender' => [
                 'name' => $senderName,
                 'first_name' => $this->sender_first_name,

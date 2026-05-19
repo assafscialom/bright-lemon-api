@@ -47,11 +47,15 @@ class AdminShipmentController extends Controller
         return ShipmentResource::collection($query->get());
     }
 
-    public function updateStatus(Request $request, Shipment $shipment): ShipmentResource
+    public function updateStatus(Request $request, Shipment $shipment): ShipmentResource|JsonResponse
     {
         $data = $request->validate([
             'status' => ['required', Rule::in(Shipment::STATUSES)],
         ]);
+
+        if ($data['status'] === Shipment::STATUS_LABEL_PRINTED && ! $shipment->ems_label_content) {
+            return $this->labelNotReadyResponse($shipment);
+        }
 
         $updates = ['status' => $data['status']];
 
@@ -115,8 +119,12 @@ class AdminShipmentController extends Controller
         return new ShipmentResource($shipment->refresh());
     }
 
-    public function markLabelPrinted(Shipment $shipment): ShipmentResource
+    public function markLabelPrinted(Shipment $shipment): ShipmentResource|JsonResponse
     {
+        if (! $shipment->ems_label_content) {
+            return $this->labelNotReadyResponse($shipment);
+        }
+
         $shipment->update([
             'status' => Shipment::STATUS_LABEL_PRINTED,
             'label_printed_at' => $shipment->label_printed_at ?? now(),
@@ -138,5 +146,13 @@ class AdminShipmentController extends Controller
         ]);
 
         return new ShipmentResource($shipment->refresh());
+    }
+
+    private function labelNotReadyResponse(Shipment $shipment): JsonResponse
+    {
+        return response()->json([
+            'message' => 'EMS label is not ready.',
+            'data' => new ShipmentResource($shipment->refresh()),
+        ], 422);
     }
 }
