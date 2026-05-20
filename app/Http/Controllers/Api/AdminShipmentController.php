@@ -15,6 +15,43 @@ use Illuminate\Validation\Rule;
 
 class AdminShipmentController extends Controller
 {
+    public function emsStatus(): JsonResponse
+    {
+        $required = [
+            'subscription_key' => 'brightlemon.ems.subscription_key',
+            'username' => 'brightlemon.ems.username',
+            'password' => 'brightlemon.ems.password',
+            'partner_code' => 'brightlemon.ems.partner_code',
+            'sender_name' => 'brightlemon.ems.sender.name',
+            'sender_address_line_1' => 'brightlemon.ems.sender.address_line_1',
+            'sender_city' => 'brightlemon.ems.sender.city',
+            'sender_postal_code' => 'brightlemon.ems.sender.postal_code',
+            'sender_phone' => 'brightlemon.ems.sender.phone',
+        ];
+
+        $configured = [];
+        $missing = [];
+
+        foreach ($required as $name => $key) {
+            $isSet = trim((string) config($key)) !== '';
+            $configured[$name] = $isSet;
+
+            if (! $isSet) {
+                $missing[] = $name;
+            }
+        }
+
+        return response()->json([
+            'data' => [
+                'enabled' => (bool) config('brightlemon.ems.enabled'),
+                'mode' => config('brightlemon.ems.mode'),
+                'api_url' => config('brightlemon.ems.api_url'),
+                'configured' => $configured,
+                'missing' => $missing,
+            ],
+        ]);
+    }
+
     public function index(Request $request): AnonymousResourceCollection
     {
         $data = $request->validate([

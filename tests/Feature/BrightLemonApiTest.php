@@ -70,6 +70,28 @@ class BrightLemonApiTest extends TestCase
             ->assertJsonPath('message', 'Get an EMS shipping quote before recording payment.');
     }
 
+    public function test_admin_can_inspect_ems_configuration_status_without_secrets(): void
+    {
+        config([
+            'brightlemon.ems.enabled' => true,
+            'brightlemon.ems.api_url' => 'https://ems.example.test',
+            'brightlemon.ems.subscription_key' => '',
+            'brightlemon.ems.username' => 'ems-user',
+            'brightlemon.ems.password' => 'ems-password',
+            'brightlemon.ems.sender.name' => '',
+        ]);
+
+        $this->withToken($this->superAdminToken())->getJson('/api/v1/admin/ems/status')
+            ->assertOk()
+            ->assertJsonPath('data.enabled', true)
+            ->assertJsonPath('data.api_url', 'https://ems.example.test')
+            ->assertJsonPath('data.configured.username', true)
+            ->assertJsonPath('data.configured.password', true)
+            ->assertJsonPath('data.configured.subscription_key', false)
+            ->assertJsonMissing(['ems-user'])
+            ->assertJsonMissing(['ems-password']);
+    }
+
     public function test_admin_can_request_ems_quote_from_rate_api(): void
     {
         config([

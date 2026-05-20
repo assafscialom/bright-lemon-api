@@ -17,6 +17,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/shipments/{packageNumber}', [ShipmentController::class, 'show']);
 
     Route::prefix('admin')->middleware('admin')->group(function () {
+        Route::get('/ems/status', [AdminShipmentController::class, 'emsStatus']);
         Route::get('/shipments', [AdminShipmentController::class, 'index']);
         Route::patch('/shipments/{shipment}/status', [AdminShipmentController::class, 'updateStatus']);
         Route::post('/shipments/{shipment}/shipping-quote', [AdminShipmentController::class, 'quoteShipping']);
