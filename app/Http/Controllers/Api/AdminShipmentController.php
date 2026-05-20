@@ -22,11 +22,6 @@ class AdminShipmentController extends Controller
             'username' => 'brightlemon.ems.username',
             'password' => 'brightlemon.ems.password',
             'partner_code' => 'brightlemon.ems.partner_code',
-            'sender_name' => 'brightlemon.ems.sender.name',
-            'sender_address_line_1' => 'brightlemon.ems.sender.address_line_1',
-            'sender_city' => 'brightlemon.ems.sender.city',
-            'sender_postal_code' => 'brightlemon.ems.sender.postal_code',
-            'sender_phone' => 'brightlemon.ems.sender.phone',
         ];
 
         $configured = [];

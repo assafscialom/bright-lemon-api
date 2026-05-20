@@ -34,14 +34,7 @@ return [
             explode(',', env('BRIGHT_LEMON_EMS_ALLOWED_WARNING_CODES', '201'))
         )),
         'sender' => [
-            'name' => env('BRIGHT_LEMON_EMS_SENDER_NAME'),
-            'address_line_1' => env('BRIGHT_LEMON_EMS_SENDER_ADDRESS_LINE_1'),
-            'address_line_2' => env('BRIGHT_LEMON_EMS_SENDER_ADDRESS_LINE_2'),
-            'city' => env('BRIGHT_LEMON_EMS_SENDER_CITY'),
-            'postal_code' => env('BRIGHT_LEMON_EMS_SENDER_POSTAL_CODE'),
             'country_code' => env('BRIGHT_LEMON_EMS_SENDER_COUNTRY_CODE', 'IL'),
-            'phone' => env('BRIGHT_LEMON_EMS_SENDER_PHONE'),
-            'email' => env('BRIGHT_LEMON_EMS_SENDER_EMAIL'),
         ],
         'country_codes' => [
             'UNITED STATES' => 'US',

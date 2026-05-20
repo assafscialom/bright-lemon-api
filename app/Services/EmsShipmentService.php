@@ -22,6 +22,7 @@ class EmsShipmentService
         }
 
         $this->assertConfigured();
+        $this->assertShipmentSenderConfigured($shipment);
 
         $requestBody = $this->buildShipmentRequestBody($shipment);
 
@@ -114,7 +115,7 @@ class EmsShipmentService
                         ],
                     ],
                     'Recipient' => $this->recipientPayload($shipment),
-                    'Sender' => $this->senderPayload(),
+                    'Sender' => $this->senderPayload($shipment),
                     'ClientShipmentIdentifier' => $shipment->package_number,
                 ],
             ],
@@ -156,24 +157,31 @@ class EmsShipmentService
     /**
      * @return array<string, mixed>
      */
-    private function senderPayload(): array
+    private function senderPayload(Shipment $shipment): array
     {
+        $senderName = trim(implode(' ', array_filter([
+            $shipment->sender_first_name,
+            $shipment->sender_middle_name,
+            $shipment->sender_last_name,
+        ])));
+        $senderPhone = $this->digits($shipment->sender_phone_normalized ?: trim($shipment->sender_country_code.' '.$shipment->sender_mobile));
+
         return [
-            'Name' => config('brightlemon.ems.sender.name'),
-            'AddressLine1' => config('brightlemon.ems.sender.address_line_1'),
-            'AddressLine2' => config('brightlemon.ems.sender.address_line_2'),
+            'Name' => $senderName,
+            'AddressLine1' => trim($shipment->sender_street.' '.($shipment->sender_number ?? '')),
+            'AddressLine2' => null,
             'StreetCode' => null,
             'HouseNumber' => null,
             'HouseEntrance' => null,
             'ApartmentNum' => null,
-            'City' => config('brightlemon.ems.sender.city'),
+            'City' => $shipment->sender_city,
             'CityCode' => null,
             'District' => null,
-            'ZipCode' => config('brightlemon.ems.sender.postal_code'),
+            'ZipCode' => $shipment->sender_postal_code,
             'CountryCode' => config('brightlemon.ems.sender.country_code', 'IL'),
-            'Phone' => $this->digits(config('brightlemon.ems.sender.phone')),
-            'OtherPhone' => $this->digits(config('brightlemon.ems.sender.phone')),
-            'Email' => config('brightlemon.ems.sender.email'),
+            'Phone' => $senderPhone,
+            'OtherPhone' => $senderPhone,
+            'Email' => $shipment->sender_email,
             'PartnerCode' => config('brightlemon.ems.partner_code'),
         ];
     }
@@ -239,16 +247,29 @@ class EmsShipmentService
             'brightlemon.ems.username',
             'brightlemon.ems.password',
             'brightlemon.ems.partner_code',
-            'brightlemon.ems.sender.name',
-            'brightlemon.ems.sender.address_line_1',
-            'brightlemon.ems.sender.city',
-            'brightlemon.ems.sender.postal_code',
-            'brightlemon.ems.sender.phone',
         ];
 
         foreach ($required as $key) {
             if (! config($key)) {
                 throw new EmsShipmentException("EMS configuration is missing: {$key}");
+            }
+        }
+    }
+
+    private function assertShipmentSenderConfigured(Shipment $shipment): void
+    {
+        $required = [
+            'sender_first_name',
+            'sender_last_name',
+            'sender_mobile',
+            'sender_city',
+            'sender_street',
+            'sender_postal_code',
+        ];
+
+        foreach ($required as $key) {
+            if (! trim((string) $shipment->{$key})) {
+                throw new EmsShipmentException("EMS sender information is missing: {$key}");
             }
         }
     }

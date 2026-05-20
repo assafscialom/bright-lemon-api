@@ -135,8 +135,8 @@ class IsraelPostQuoteService
             ],
             'address_from' => [
                 'country_code' => config('brightlemon.ems.sender.country_code') ?: 'IL',
-                'city_name' => config('brightlemon.ems.sender.city') ?: 'Tel Aviv',
-                'postal_code' => config('brightlemon.ems.sender.postal_code') ?: '6100001',
+                'city_name' => $shipment->sender_city,
+                'postal_code' => $shipment->sender_postal_code,
             ],
             'address_to' => [
                 'country_code' => $destinationCountryCode,

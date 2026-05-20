@@ -78,7 +78,6 @@ class BrightLemonApiTest extends TestCase
             'brightlemon.ems.subscription_key' => '',
             'brightlemon.ems.username' => 'ems-user',
             'brightlemon.ems.password' => 'ems-password',
-            'brightlemon.ems.sender.name' => '',
         ]);
 
         $this->withToken($this->superAdminToken())->getJson('/api/v1/admin/ems/status')
@@ -96,8 +95,6 @@ class BrightLemonApiTest extends TestCase
     {
         config([
             'brightlemon.ems.rate_api_url' => 'https://rates.example.test',
-            'brightlemon.ems.sender.city' => 'Tel Aviv',
-            'brightlemon.ems.sender.postal_code' => '6100001',
         ]);
 
         Http::fake([
@@ -141,6 +138,8 @@ class BrightLemonApiTest extends TestCase
             return $request->url() === 'https://rates.example.test/api/v1/rates'
                 && $request['shipping_providers'][0]['id'] === 'israel_post'
                 && $request['shipping_providers'][0]['parameters']['servicelevel_tokens'][0] === 'israel_post_ems'
+                && $request['address_from']['city_name'] === 'Tel Aviv'
+                && $request['address_from']['postal_code'] === '6100001'
                 && $request['address_to']['country_code'] === 'DE'
                 && $request['parcels'][0]['weight'] === 2.0;
         });
@@ -155,12 +154,6 @@ class BrightLemonApiTest extends TestCase
             'brightlemon.ems.username' => 'ems-user',
             'brightlemon.ems.password' => 'ems-password',
             'brightlemon.ems.partner_code' => '400327',
-            'brightlemon.ems.sender.name' => 'Ship Home',
-            'brightlemon.ems.sender.address_line_1' => 'Dizengoff 100',
-            'brightlemon.ems.sender.city' => 'Tel Aviv',
-            'brightlemon.ems.sender.postal_code' => '6100001',
-            'brightlemon.ems.sender.phone' => '+972544522993',
-            'brightlemon.ems.sender.email' => 'ops@example.com',
         ]);
 
         Http::fake([
@@ -215,6 +208,12 @@ class BrightLemonApiTest extends TestCase
             return $request->url() === 'https://ems.example.test/Export/SendParcelInfo'
                 && $request['Items'][0]['ServiceTypeCode'] === 4
                 && $request['Items'][0]['OrderReference'] === 'INV-EMS-1001'
+                && $request['Items'][0]['Sender']['Name'] === 'Assaf Cohen'
+                && $request['Items'][0]['Sender']['Phone'] === '9720501234567'
+                && $request['Items'][0]['Sender']['AddressLine1'] === 'Dizengoff 100'
+                && $request['Items'][0]['Sender']['City'] === 'Tel Aviv'
+                && $request['Items'][0]['Sender']['ZipCode'] === '6100001'
+                && $request['Items'][0]['Sender']['Email'] === 'assaf@example.com'
                 && $request['Items'][0]['Recipient']['CountryCode'] === 'DE';
         });
     }
@@ -461,6 +460,11 @@ class BrightLemonApiTest extends TestCase
                 'last_name' => 'Cohen',
                 'country_code' => '+972',
                 'mobile' => '0501234567',
+                'email' => 'assaf@example.com',
+                'city' => 'Tel Aviv',
+                'street' => 'Dizengoff',
+                'number' => '100',
+                'postal_code' => '6100001',
             ],
             'passport' => [
                 'number' => 'A12345678',
