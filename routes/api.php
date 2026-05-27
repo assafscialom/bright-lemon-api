@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\Api\AdminGoodsTypeController;
 use App\Http\Controllers\Api\AdminShipmentController;
 use App\Http\Controllers\Api\AdminShippingDropLocationController;
 use App\Http\Controllers\Api\AuthOtpController;
+use App\Http\Controllers\Api\PublicGoodsTypeController;
 use App\Http\Controllers\Api\PublicShippingDropLocationController;
 use App\Http\Controllers\Api\ShipmentController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +23,10 @@ Route::prefix('v1')->group(function () {
     // "View branches on map" popup at the end of the SendPackage flow.
     Route::get('/shipping-locations', [PublicShippingDropLocationController::class, 'index']);
 
+    // Public read-only list of goods types — drives the "Goods type" select
+    // on the SendPackage form. Managed by superadmin (see below).
+    Route::get('/goods-types', [PublicGoodsTypeController::class, 'index']);
+
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/ems/status', [AdminShipmentController::class, 'emsStatus']);
         Route::get('/shipments', [AdminShipmentController::class, 'index']);
@@ -36,5 +42,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/drop-locations', [AdminShippingDropLocationController::class, 'store']);
         Route::put('/drop-locations/{dropLocation}', [AdminShippingDropLocationController::class, 'update']);
         Route::delete('/drop-locations/{dropLocation}', [AdminShippingDropLocationController::class, 'destroy']);
+
+        Route::get('/goods-types', [AdminGoodsTypeController::class, 'index']);
+        Route::post('/goods-types', [AdminGoodsTypeController::class, 'store']);
+        Route::put('/goods-types/{goodsType}', [AdminGoodsTypeController::class, 'update']);
+        Route::delete('/goods-types/{goodsType}', [AdminGoodsTypeController::class, 'destroy']);
     });
 });

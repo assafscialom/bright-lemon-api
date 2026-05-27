@@ -61,6 +61,7 @@ class ShipmentController extends Controller
             'signature_data_url' => ['nullable', 'string'],
 
             'customs.package_type' => ['required', 'string', 'max:80'],
+            'customs.goods_type' => ['nullable', 'string', 'max:200'],
             'customs.destination' => ['required', 'string', 'max:120'],
             'customs.weight' => ['required', 'string', 'max:40'],
             'customs.declared_value' => ['required', 'numeric', 'min:0', 'max:999999.99'],
@@ -105,6 +106,7 @@ class ShipmentController extends Controller
                 'signature_data_url' => $data['signature_data_url'] ?? null,
 
                 'package_type' => $data['customs']['package_type'],
+                'goods_type' => $data['customs']['goods_type'] ?? null,
                 'destination_country' => $data['customs']['destination'],
                 'weight_label' => $data['customs']['weight'],
                 'weight_kg' => $pricing->weightKgForLabel($data['customs']['weight']),
