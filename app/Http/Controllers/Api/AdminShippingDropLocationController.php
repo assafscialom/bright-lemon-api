@@ -80,6 +80,8 @@ class AdminShippingDropLocationController extends Controller
             'city' => ['required', 'string', 'max:120'],
             'address_line_1' => ['required', 'string', 'max:255'],
             'address_line_2' => ['nullable', 'string', 'max:255'],
+            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
+            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
             'contact_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],

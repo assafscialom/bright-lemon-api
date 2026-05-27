@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AdminShipmentController;
 use App\Http\Controllers\Api\AdminShippingDropLocationController;
 use App\Http\Controllers\Api\AuthOtpController;
+use App\Http\Controllers\Api\PublicShippingDropLocationController;
 use App\Http\Controllers\Api\ShipmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -15,6 +16,10 @@ Route::prefix('v1')->group(function () {
     Route::get('/shipments', [ShipmentController::class, 'index']);
     Route::post('/shipments', [ShipmentController::class, 'store']);
     Route::get('/shipments/{packageNumber}', [ShipmentController::class, 'show']);
+
+    // Public read-only list of active drop-off branches — used by the
+    // "View branches on map" popup at the end of the SendPackage flow.
+    Route::get('/shipping-locations', [PublicShippingDropLocationController::class, 'index']);
 
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/ems/status', [AdminShipmentController::class, 'emsStatus']);

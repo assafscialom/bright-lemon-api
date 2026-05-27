@@ -13,6 +13,8 @@ class ShippingDropLocation extends Model
         return [
             'is_active' => 'boolean',
             'sort_order' => 'integer',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 }

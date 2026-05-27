@@ -17,6 +17,8 @@ class ShippingDropLocationResource extends JsonResource
             'city' => $this->city,
             'address_line_1' => $this->address_line_1,
             'address_line_2' => $this->address_line_2,
+            'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
+            'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
             'contact_name' => $this->contact_name,
             'phone' => $this->phone,
             'email' => $this->email,
