@@ -75,6 +75,9 @@ class AdminShippingDropLocationController extends Controller
                 'max:40',
                 Rule::unique('shipping_drop_locations', 'code')->ignore($location),
             ],
+            // "מספר שיפר" — Shipper customer/account number tied to this branch.
+            // Optional: not every branch has one yet.
+            'shipper_number' => ['nullable', 'string', 'max:40'],
             'name' => ['required', 'string', 'max:255'],
             'country' => ['required', 'string', 'max:120'],
             'city' => ['required', 'string', 'max:120'],

@@ -12,6 +12,7 @@ class ShippingDropLocationResource extends JsonResource
         return [
             'id' => $this->id,
             'code' => $this->code,
+            'shipper_number' => $this->shipper_number,
             'name' => $this->name,
             'country' => $this->country,
             'city' => $this->city,
