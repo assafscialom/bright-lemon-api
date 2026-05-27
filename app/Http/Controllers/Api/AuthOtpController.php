@@ -99,6 +99,14 @@ class AuthOtpController extends Controller
                 'name' => $adminDropLocation->name,
                 'role' => User::ROLE_ADMIN,
                 'drop_location_id' => $adminDropLocation->id,
+                // Branch identity surfaced on the splash sidebar / printed
+                // labels so a branch admin sees their own branch info instead
+                // of the hard-coded "Manhattan Hub" placeholder.
+                'branch_code' => $adminDropLocation->code,
+                'branch_address' => trim(
+                    ($adminDropLocation->address_line_1 ?? '')
+                    .($adminDropLocation->city ? ', '.$adminDropLocation->city : '')
+                ),
             ] : null),
             'demo' => true,
         ]);
