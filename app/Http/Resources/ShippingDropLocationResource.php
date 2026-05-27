@@ -20,6 +20,9 @@ class ShippingDropLocationResource extends JsonResource
             'address_line_2' => $this->address_line_2,
             'latitude' => $this->latitude !== null ? (float) $this->latitude : null,
             'longitude' => $this->longitude !== null ? (float) $this->longitude : null,
+            // % applied to shipper_price from the country-group tier to compute
+            // Shipper's take per shipment dropped at this branch. 0 = no markup.
+            'markup_percent' => (float) ($this->markup_percent ?? 0),
             'contact_name' => $this->contact_name,
             'phone' => $this->phone,
             'email' => $this->email,

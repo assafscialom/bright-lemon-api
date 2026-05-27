@@ -99,6 +99,16 @@ class ShipmentResource extends JsonResource
                 'error' => $this->shipping_quote_error,
                 'quoted_at' => $this->shipping_quoted_at?->toISOString(),
             ],
+            // Split of the customer payment between Shipper and the drop
+            // location, frozen at the moment the admin recorded payment.
+            // Null values mean the split hasn't been computed yet (the
+            // shipment hasn't been paid/assigned).
+            'pricing_split' => [
+                'drop_location_id' => $this->drop_location_id !== null ? (int) $this->drop_location_id : null,
+                'shipper_take_amount' => $this->shipper_take_amount !== null ? (float) $this->shipper_take_amount : null,
+                'drop_location_take_amount' => $this->drop_location_take_amount !== null ? (float) $this->drop_location_take_amount : null,
+                'markup_percent_at_quote' => $this->markup_percent_at_quote !== null ? (float) $this->markup_percent_at_quote : null,
+            ],
             'payment_ref' => $this->payment_ref,
             'invoice_number' => $this->invoice_number,
             'postal_ref' => $this->postal_ref,

@@ -85,6 +85,9 @@ class AdminShippingDropLocationController extends Controller
             'address_line_2' => ['nullable', 'string', 'max:255'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            // Branch markup applied on top of shipper_price (country-group tier)
+            // to compute Shipper's take per shipment dropped here. 0 = no markup.
+            'markup_percent' => ['nullable', 'numeric', 'min:0', 'max:1000'],
             'contact_name' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
