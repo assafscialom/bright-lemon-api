@@ -127,8 +127,19 @@ class EmsShipmentService
      */
     private function recipientPayload(Shipment $shipment): array
     {
+        // Israel Post's printed EMS / CN22 label only renders the `FirstName`
+        // field — `LastName` is kept by the API for internal matching but never
+        // appears on the PDF. Recipients with separate first/last names were
+        // arriving with just the first name (e.g. "Lena" instead of
+        // "Lena Rosenberg"). Concatenate into FirstName so the full name prints,
+        // and keep the original LastName intact for whatever IL Post does with
+        // it internally.
+        $printedName = trim(
+            ((string) $shipment->recipient_first_name).' '.((string) $shipment->recipient_last_name)
+        );
+
         return [
-            'FirstName' => $shipment->recipient_first_name,
+            'FirstName' => $printedName !== '' ? $printedName : $shipment->recipient_first_name,
             'LastName' => $shipment->recipient_last_name,
             'MobilePhone' => $this->digits($shipment->recipient_mobile),
             'OtherPhone' => $this->digits($shipment->recipient_mobile),

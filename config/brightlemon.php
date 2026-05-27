@@ -22,7 +22,13 @@ return [
         'currency' => env('BRIGHT_LEMON_EMS_CURRENCY', 'USD'),
         'rate_api_url' => env('BRIGHT_LEMON_EMS_RATE_API_URL'),
         'rate_carrier' => env('BRIGHT_LEMON_EMS_RATE_CARRIER', 'israel_post'),
-        'timeout' => env('BRIGHT_LEMON_EMS_TIMEOUT', 30),
+        // Israel Post — particularly the test gateway (apimfttst.israelpost.co.il)
+        // — regularly takes 60-90s to respond on SendParcelInfo/GetToken. The old
+        // 30s default surfaced as `cURL error 28: Operation timed out` and the
+        // admin's "record payment" action failed mid-flight, leaving the
+        // shipment paid but without a label. 120s matches what we ship in the
+        // main Shipper b2c-api SDK.
+        'timeout' => env('BRIGHT_LEMON_EMS_TIMEOUT', 120),
         'default_recipient_postal_code' => env('BRIGHT_LEMON_EMS_DEFAULT_RECIPIENT_POSTAL_CODE', '00000'),
         'default_parcel' => [
             'length_cm' => env('BRIGHT_LEMON_EMS_DEFAULT_PARCEL_LENGTH_CM', 10),
