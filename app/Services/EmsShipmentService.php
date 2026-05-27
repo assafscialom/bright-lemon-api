@@ -111,7 +111,11 @@ class EmsShipmentService
                             'ItemQuantity' => 1,
                             'ItemValue' => (float) $shipment->declared_value,
                             'ItemWeight' => $weight,
-                            'HsCode' => null,
+                            // Israel Post rejects the parcel with
+                            // "HS_CODE of Content is required" if this is null.
+                            // Map the customer's package_type to a sensible
+                            // 6-digit HS code (config: brightlemon.ems.hs_codes).
+                            'HsCode' => $this->hsCodeFor($shipment->package_type),
                         ],
                     ],
                     'Recipient' => $this->recipientPayload($shipment),
@@ -192,7 +196,12 @@ class EmsShipmentService
             'CountryCode' => config('brightlemon.ems.sender.country_code', 'IL'),
             'Phone' => $senderPhone,
             'OtherPhone' => $senderPhone,
-            'Email' => $shipment->sender_email,
+            // Israel Post requires SenderEmail and 422s without it. The form
+            // marks it optional, so fall back to a configured default address
+            // when the customer left it blank (config:
+            // brightlemon.ems.sender.fallback_email).
+            'Email' => $shipment->sender_email
+                ?: config('brightlemon.ems.sender.fallback_email'),
             'PartnerCode' => config('brightlemon.ems.partner_code'),
         ];
     }
@@ -248,6 +257,26 @@ class EmsShipmentService
         }
 
         return $map[$key];
+    }
+
+    /**
+     * Resolve the HS (Harmonized System) tariff code for a given package_type.
+     * IL Post requires this on every ParcelContent line — we pick a code that
+     * matches the customer's selected package type (Gift / Merchandise / etc.)
+     * and fall back to the configured default for unknown types.
+     */
+    private function hsCodeFor(?string $packageType): string
+    {
+        $byType = (array) config('brightlemon.ems.hs_codes.by_type', []);
+        $default = (string) config('brightlemon.ems.hs_codes.default', '999900');
+
+        if ($packageType !== null && isset($byType[$packageType])) {
+            $code = trim((string) $byType[$packageType]);
+            if ($code !== '') {
+                return $code;
+            }
+        }
+        return $default;
     }
 
     private function assertConfigured(): void

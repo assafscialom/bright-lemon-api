@@ -41,6 +41,23 @@ return [
         )),
         'sender' => [
             'country_code' => env('BRIGHT_LEMON_EMS_SENDER_COUNTRY_CODE', 'IL'),
+            // Used as a fallback when the customer leaves their email blank on
+            // the public form. Israel Post's EMS validator rejects the parcel
+            // with "10: Validation failed:SenderEmail is required" otherwise.
+            'fallback_email' => env('BRIGHT_LEMON_EMS_SENDER_FALLBACK_EMAIL', 'support@iqdesk.xyz'),
+        ],
+        // Israel Post requires an HS (Harmonized System) tariff code on every
+        // ParcelContent line. The public form doesn't ask for one — we map the
+        // customer's package_type to a sensible 6-digit code. Tweak the `by_type`
+        // entries if a more accurate code is needed for a specific category.
+        'hs_codes' => [
+            'default' => env('BRIGHT_LEMON_EMS_DEFAULT_HS_CODE', '999900'),
+            'by_type' => [
+                'Gift'           => env('BRIGHT_LEMON_EMS_HS_CODE_GIFT', '950300'),         // toys/games
+                'Merchandise'    => env('BRIGHT_LEMON_EMS_HS_CODE_MERCHANDISE', '999900'),  // unspecified merchandise
+                'Returned Goods' => env('BRIGHT_LEMON_EMS_HS_CODE_RETURNED', '999900'),
+                'Documents'      => env('BRIGHT_LEMON_EMS_HS_CODE_DOCUMENTS', '490110'),    // printed matter
+            ],
         ],
         'country_codes' => [
             'UNITED STATES' => 'US',
