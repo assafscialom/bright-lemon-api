@@ -46,6 +46,7 @@ Route::prefix('v1')->group(function () {
         Route::patch('/shipments/{shipment}/status', [AdminShipmentController::class, 'updateStatus']);
         Route::post('/shipments/{shipment}/shipping-quote', [AdminShipmentController::class, 'quoteShipping']);
         Route::post('/shipments/{shipment}/payment', [AdminShipmentController::class, 'recordPayment']);
+        Route::post('/shipments/{shipment}/ems-label', [AdminShipmentController::class, 'createEmsLabel']);
         Route::post('/shipments/{shipment}/label-printed', [AdminShipmentController::class, 'markLabelPrinted']);
         Route::post('/shipments/{shipment}/postal-reference', [AdminShipmentController::class, 'recordPostalReference']);
     });

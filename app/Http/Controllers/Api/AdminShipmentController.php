@@ -227,6 +227,54 @@ class AdminShipmentController extends Controller
         return new ShipmentResource($shipment->refresh());
     }
 
+    /**
+     * Retry EMS label creation for a shipment whose label failed to generate
+     * during recordPayment (e.g. a transient EMS gateway error). Idempotent —
+     * the EMS service returns early if a label already exists.
+     */
+    public function createEmsLabel(Request $request, Shipment $shipment, EmsShipmentService $ems): ShipmentResource|JsonResponse
+    {
+        // Same branch scoping as payment: a branch may only act on orders that
+        // are still open or already assigned to it.
+        $branchLocation = $request->attributes->get('admin_drop_location');
+        if (
+            $branchLocation
+            && $shipment->drop_location_id
+            && (int) $shipment->drop_location_id !== (int) $branchLocation->id
+        ) {
+            return response()->json([
+                'message' => 'This shipment has already been assigned to another branch.',
+            ], 403);
+        }
+
+        // The label is created at payment time, so a retry only makes sense
+        // once the order has been paid.
+        if (! $shipment->paid_at) {
+            return response()->json([
+                'message' => 'Record the payment before creating the EMS label.',
+                'data' => new ShipmentResource($shipment->refresh()),
+            ], 422);
+        }
+
+        try {
+            $shipment = $ems->createOrderForShipment($shipment->refresh());
+        } catch (EmsShipmentException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'data' => new ShipmentResource($shipment->refresh()),
+            ], 502);
+        }
+
+        if (! $shipment->ems_label_content) {
+            return response()->json([
+                'message' => 'EMS label was not created.',
+                'data' => new ShipmentResource($shipment->refresh()),
+            ], 502);
+        }
+
+        return new ShipmentResource($shipment->refresh());
+    }
+
     public function markLabelPrinted(Shipment $shipment): ShipmentResource|JsonResponse
     {
         if (! $shipment->ems_label_content) {
