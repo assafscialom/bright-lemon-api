@@ -57,6 +57,17 @@ class AdminShipmentController extends Controller
 
         $query = Shipment::query()->with('dropLocation')->latest();
 
+        // Branch admins only see orders that are still open (no branch has
+        // claimed them yet) or that are already assigned to their own branch.
+        // Orders claimed by another branch are hidden. Superadmin sees all.
+        $branchLocation = $request->attributes->get('admin_drop_location');
+        if ($branchLocation) {
+            $query->where(function ($q) use ($branchLocation) {
+                $q->whereNull('drop_location_id')
+                    ->orWhere('drop_location_id', $branchLocation->id);
+            });
+        }
+
         if (! empty($data['status'])) {
             $query->where('status', $data['status']);
         }
@@ -136,7 +147,26 @@ class AdminShipmentController extends Controller
             ], 422);
         }
 
-        $dropLocationId = $data['drop_location_id'] ?? $shipment->drop_location_id;
+        // A branch admin can only settle orders that are still open or already
+        // theirs — never one another branch has already claimed.
+        $branchLocation = $request->attributes->get('admin_drop_location');
+        if (
+            $branchLocation
+            && $shipment->drop_location_id
+            && (int) $shipment->drop_location_id !== (int) $branchLocation->id
+        ) {
+            return response()->json([
+                'message' => 'This shipment has already been assigned to another branch.',
+            ], 403);
+        }
+
+        // Recording a payment claims the order for the branch that did it. The
+        // branch identity comes from the authenticated token (not the request
+        // body) so a branch can't assign an order to someone else. Superadmin
+        // may still pass an explicit drop_location_id on behalf of a branch.
+        $dropLocationId = $branchLocation
+            ? $branchLocation->id
+            : ($data['drop_location_id'] ?? $shipment->drop_location_id);
         $updates = [
             'status' => Shipment::STATUS_PAID,
             'payment_ref' => $data['payment_ref'] ?? $shipment->payment_ref ?? 'PAY-'.$shipment->package_number,
