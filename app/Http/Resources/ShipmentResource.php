@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Models\Shipment;
+use App\Services\ShippingPriceService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -29,6 +30,25 @@ class ShipmentResource extends JsonResource
         ]));
 
         $shippingPrice = $this->shipping_quoted_at ? (float) $this->shipping_price : null;
+
+        // The price the branch should charge the customer. Deterministic from
+        // destination + weight (markup-independent), so it can be shown in the
+        // branch console without a separate "Get quote" step. Uses the frozen
+        // quote when present; otherwise computes a live preview.
+        $chargePrice = $shippingPrice;
+        $chargeCurrency = $this->shipping_price_currency;
+        if ($chargePrice === null && $this->destination_country && (float) $this->weight_kg > 0) {
+            $preview = app(ShippingPriceService::class)->quote(
+                (string) $this->destination_country,
+                max((float) $this->weight_kg, 0.001),
+                null,
+            );
+            if ($preview) {
+                $chargePrice = $preview['customer_price'];
+                $chargeCurrency = $preview['currency'];
+            }
+        }
+
         $status = $this->status;
 
         if ($status === Shipment::STATUS_LABEL_PRINTED && ! $this->ems_label_content) {
@@ -99,6 +119,10 @@ class ShipmentResource extends JsonResource
             'declared_value' => (float) $this->declared_value,
             'shipping_price' => $shippingPrice,
             'shipping_price_currency' => $this->shipping_price_currency,
+            // Price the branch charges the customer (live preview if not yet
+            // quoted). Lets the console show the amount without a manual quote.
+            'charge_price' => $chargePrice,
+            'charge_currency' => $chargeCurrency,
             'shipping_quote' => [
                 'status' => $this->shipping_quote_status,
                 'service' => $this->shipping_quote_service,

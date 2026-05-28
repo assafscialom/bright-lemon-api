@@ -130,7 +130,7 @@ class AdminShipmentController extends Controller
         return new ShipmentResource($shipment->refresh());
     }
 
-    public function recordPayment(Request $request, Shipment $shipment, EmsShipmentService $ems, ShippingPriceService $pricing): ShipmentResource|JsonResponse
+    public function recordPayment(Request $request, Shipment $shipment, EmsShipmentService $ems, ShippingPriceService $pricing, IsraelPostQuoteService $quotes): ShipmentResource|JsonResponse
     {
         $data = $request->validate([
             'payment_ref' => ['nullable', 'string', 'max:80'],
@@ -140,11 +140,25 @@ class AdminShipmentController extends Controller
             'drop_location_id' => ['nullable', 'integer', 'exists:shipping_drop_locations,id'],
         ]);
 
+        // The branch no longer runs a separate "Get quote" step — the price the
+        // customer is charged is deterministic from destination + weight, so we
+        // compute and freeze it here automatically if it hasn't been already.
         if (! $shipment->shipping_quoted_at || (float) $shipment->shipping_price <= 0) {
-            return response()->json([
-                'message' => 'Get an EMS shipping quote before recording payment.',
-                'data' => new ShipmentResource($shipment->refresh()),
-            ], 422);
+            try {
+                $shipment = $quotes->quoteForShipment($shipment);
+            } catch (EmsShipmentException $e) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'data' => new ShipmentResource($shipment->refresh()),
+                ], 502);
+            }
+
+            if (! $shipment->shipping_quoted_at || (float) $shipment->shipping_price <= 0) {
+                return response()->json([
+                    'message' => 'No pricing is configured for this destination and weight.',
+                    'data' => new ShipmentResource($shipment->refresh()),
+                ], 422);
+            }
         }
 
         // A branch admin can only settle orders that are still open or already
