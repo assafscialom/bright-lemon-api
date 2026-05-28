@@ -22,6 +22,18 @@ class ShipmentPricingService
 
     public function weightKgForLabel(string $weightLabel): float
     {
-        return (float) (self::WEIGHT_TABLE[$weightLabel]['kg'] ?? 0);
+        if (isset(self::WEIGHT_TABLE[$weightLabel])) {
+            return (float) self::WEIGHT_TABLE[$weightLabel]['kg'];
+        }
+
+        // Generic fallback for labels generated from the country-group tiers
+        // (e.g. "2 – 3 kg", "Up to 0.5 kg"). The bracket's upper bound is the
+        // last number in the label, and equals a tier's max_weight_kg — which
+        // is what the pricing service resolves the tier by.
+        if (preg_match_all('/\d+(?:\.\d+)?/', $weightLabel, $matches) && ! empty($matches[0])) {
+            return (float) end($matches[0]);
+        }
+
+        return 0.0;
     }
 }

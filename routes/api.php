@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AdminShipmentController;
 use App\Http\Controllers\Api\AdminShippingDropLocationController;
 use App\Http\Controllers\Api\AuthOtpController;
 use App\Http\Controllers\Api\PublicGoodsTypeController;
+use App\Http\Controllers\Api\PublicShippingDestinationController;
 use App\Http\Controllers\Api\PublicShippingDropLocationController;
 use App\Http\Controllers\Api\PublicShippingQuoteController;
 use App\Http\Controllers\Api\ShipmentController;
@@ -28,6 +29,11 @@ Route::prefix('v1')->group(function () {
     // Public read-only list of goods types — drives the "Goods type" select
     // on the SendPackage form. Managed by superadmin (see below).
     Route::get('/goods-types', [PublicGoodsTypeController::class, 'index']);
+
+    // Public destination countries + their customer-facing price tiers, built
+    // from the superadmin country groups. Drives the SendPackage "Destination
+    // Country" select and the price-per-weight popup.
+    Route::get('/shipping-destinations', [PublicShippingDestinationController::class, 'index']);
 
     // Public shipping quote — internal pricing only (no carrier round-trip).
     // Returns the customer-facing amount for a (country, weight) pair using
