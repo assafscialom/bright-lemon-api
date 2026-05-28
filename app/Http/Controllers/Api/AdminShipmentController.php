@@ -55,7 +55,7 @@ class AdminShipmentController extends Controller
             'status' => ['nullable', Rule::in(Shipment::STATUSES)],
         ]);
 
-        $query = Shipment::query()->with('dropLocation')->latest();
+        $query = Shipment::query()->with(['dropLocation', 'destinationCountry'])->latest();
 
         // Branch admins only see orders that are still open (no branch has
         // claimed them yet) or that are already assigned to their own branch.

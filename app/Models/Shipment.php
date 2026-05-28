@@ -49,4 +49,14 @@ class Shipment extends Model
     {
         return $this->belongsTo(ShippingDropLocation::class, 'drop_location_id');
     }
+
+    /**
+     * The destination country in the registry, linked by ISO-2 code. Gives
+     * access to the country name and its pricing group via
+     * `$shipment->destinationCountry->group`. Null for unpriced destinations.
+     */
+    public function destinationCountry(): BelongsTo
+    {
+        return $this->belongsTo(CountryGroupCountry::class, 'destination_country_code', 'country_code');
+    }
 }

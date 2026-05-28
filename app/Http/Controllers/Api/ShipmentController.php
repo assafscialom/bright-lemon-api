@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ShipmentResource;
+use App\Models\CountryGroupCountry;
 use App\Models\Shipment;
 use App\Services\PhoneService;
 use App\Services\ShipmentPricingService;
@@ -108,6 +109,7 @@ class ShipmentController extends Controller
                 'package_type' => $data['customs']['package_type'],
                 'goods_type' => $data['customs']['goods_type'] ?? null,
                 'destination_country' => $data['customs']['destination'],
+                'destination_country_code' => CountryGroupCountry::resolveCode($data['customs']['destination']),
                 'weight_label' => $data['customs']['weight'],
                 'weight_kg' => $pricing->weightKgForLabel($data['customs']['weight']),
                 'declared_value' => $data['customs']['declared_value'],

@@ -108,6 +108,7 @@ class ShipmentResource extends JsonResource
                 'package_type' => $this->package_type,
                 'goods_type' => $this->goods_type,
                 'destination' => $this->destination_country,
+                'destination_country_code' => $this->destination_country_code,
                 'weight' => $this->weight_label,
                 'weight_kg' => (float) $this->weight_kg,
                 'declared_value' => (float) $this->declared_value,
