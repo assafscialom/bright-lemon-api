@@ -55,7 +55,7 @@ class AdminShipmentController extends Controller
             'status' => ['nullable', Rule::in(Shipment::STATUSES)],
         ]);
 
-        $query = Shipment::query()->latest();
+        $query = Shipment::query()->with('dropLocation')->latest();
 
         if (! empty($data['status'])) {
             $query->where('status', $data['status']);

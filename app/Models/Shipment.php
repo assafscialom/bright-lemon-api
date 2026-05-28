@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Shipment extends Model
 {
@@ -38,5 +39,14 @@ class Shipment extends Model
             'ems_created_at' => 'datetime',
             'shipping_quoted_at' => 'datetime',
         ];
+    }
+
+    /**
+     * The drop-off branch that accepted this shipment. Assigned at payment
+     * time; null until then. Drives the revenue report's per-branch filter.
+     */
+    public function dropLocation(): BelongsTo
+    {
+        return $this->belongsTo(ShippingDropLocation::class, 'drop_location_id');
     }
 }

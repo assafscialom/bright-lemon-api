@@ -40,7 +40,15 @@ class ShipmentResource extends JsonResource
             'package_number' => $this->package_number,
             'date' => $this->created_at?->format('d/m/Y'),
             'created_at' => $this->created_at?->toISOString(),
-            'branch' => $this->branch_name,
+            // The drop-off branch that accepted the shipment (assigned at
+            // payment). Falls back to the legacy free-text branch_name when no
+            // drop location is linked yet, so older rows still show something.
+            'branch' => $this->dropLocation?->name ?? $this->branch_name,
+            'drop_location' => $this->dropLocation ? [
+                'id' => $this->dropLocation->id,
+                'code' => $this->dropLocation->code,
+                'name' => $this->dropLocation->name,
+            ] : null,
             'status' => $status,
             'sender' => [
                 'name' => $senderName,
