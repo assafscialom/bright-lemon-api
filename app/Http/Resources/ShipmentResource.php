@@ -141,6 +141,7 @@ class ShipmentResource extends JsonResource
                 'shipper_take_amount' => $this->shipper_take_amount !== null ? (float) $this->shipper_take_amount : null,
                 'drop_location_take_amount' => $this->drop_location_take_amount !== null ? (float) $this->drop_location_take_amount : null,
                 'markup_percent_at_quote' => $this->markup_percent_at_quote !== null ? (float) $this->markup_percent_at_quote : null,
+                'postal_cost_amount' => $this->postal_cost_amount !== null ? (float) $this->postal_cost_amount : null,
             ],
             'payment_ref' => $this->payment_ref,
             'invoice_number' => $this->invoice_number,

@@ -14,7 +14,7 @@ class CountryGroupPriceTierResource extends JsonResource
             'country_group_id' => $this->country_group_id,
             'max_weight_kg' => (float) $this->max_weight_kg,
             'customer_price' => (float) $this->customer_price,
-            'shipper_price' => (float) $this->shipper_price,
+            'postal_cost' => (float) $this->postal_cost,
             'currency' => $this->currency,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

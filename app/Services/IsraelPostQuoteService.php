@@ -16,7 +16,7 @@ use App\Models\Shipment;
  *
  * Markup% per drop location is honored when the shipment already has a
  * drop_location_id; otherwise the customer-facing price is returned with a
- * Shipper take equal to the raw shipper_price (no markup).
+ * Shipper take of 0 (markup% defaults to 0 until a branch is assigned).
  */
 class IsraelPostQuoteService
 {

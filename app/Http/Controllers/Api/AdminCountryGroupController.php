@@ -163,7 +163,7 @@ class AdminCountryGroupController extends Controller
         return $request->validate([
             'max_weight_kg' => ['required', 'numeric', 'min:0.001', 'max:999999'],
             'customer_price' => ['required', 'numeric', 'min:0', 'max:9999999.99'],
-            'shipper_price' => ['required', 'numeric', 'min:0', 'max:9999999.99'],
+            'postal_cost' => ['required', 'numeric', 'min:0', 'max:9999999.99'],
             'currency' => ['nullable', 'string', 'size:3'],
         ]);
     }

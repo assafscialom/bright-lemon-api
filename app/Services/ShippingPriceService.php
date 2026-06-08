@@ -14,13 +14,18 @@ use App\Models\ShippingDropLocation;
  * quote. The new model is fully internal:
  *
  *   1. Each destination country lives in exactly one CountryGroup.
- *   2. Each group has weight-tier rows: max_weight_kg, customer_price, shipper_price.
+ *   2. Each group has weight-tier rows: max_weight_kg, customer_price, postal_cost.
  *   3. The tier picked is the smallest tier whose max_weight_kg ≥ shipment weight.
- *   4. Each drop location has a markup_percent applied on top of shipper_price
- *      to compute Shipper's actual take per shipment.
+ *   4. The customer always pays customer_price. Each drop location has a
+ *      markup_percent which is SHIPPER'S SHARE OF THE CUSTOMER PRICE:
+ *          shipper_take       = customer_price × markup% / 100
+ *          drop_location_take = customer_price − shipper_take   (the branch keeps the rest)
+ *   5. postal_cost is the real EMS cost Shipper pays the carrier. It does not
+ *      change the customer/branch split — it only yields Shipper's net:
+ *          shipper_net = shipper_take − postal_cost
  *
- * The drop location keeps the difference between what the customer paid and
- * what Shipper takes — that's its revenue.
+ * Example: customer 130, markup 30% → shipper_take 39, branch keeps 91.
+ *          A 20% branch → shipper_take 26, branch keeps 104 (branch earns more).
  */
 class ShippingPriceService
 {
@@ -29,8 +34,9 @@ class ShippingPriceService
      *
      * @return array{
      *     customer_price: float,
-     *     shipper_price: float,
+     *     postal_cost: float,
      *     shipper_take: float,
+     *     shipper_net: float,
      *     drop_location_take: float,
      *     markup_percent: float,
      *     currency: string,
@@ -54,18 +60,21 @@ class ShippingPriceService
 
         $markupPercent = $this->resolveMarkupPercent($dropLocationId);
 
-        // Shipper's take = shipper_price + (shipper_price * markup%).
-        // The customer always pays customer_price; the drop location keeps the
-        // difference between customer_price and shipper_take.
-        $shipperTake = (float) $tier->shipper_price * (1 + $markupPercent / 100);
-        $shipperTake = round($shipperTake, 2);
+        $customerPrice = (float) $tier->customer_price;
+        $postalCost = (float) $tier->postal_cost;
 
-        $dropLocationTake = round((float) $tier->customer_price - $shipperTake, 2);
+        // The customer always pays customer_price. Shipper's take is its share
+        // of that price (markup%); the drop location keeps the rest. Shipper's
+        // net is its take minus the real postal cost it pays the carrier.
+        $shipperTake = round($customerPrice * $markupPercent / 100, 2);
+        $dropLocationTake = round($customerPrice - $shipperTake, 2);
+        $shipperNet = round($shipperTake - $postalCost, 2);
 
         return [
-            'customer_price' => (float) $tier->customer_price,
-            'shipper_price' => (float) $tier->shipper_price,
+            'customer_price' => $customerPrice,
+            'postal_cost' => $postalCost,
             'shipper_take' => $shipperTake,
+            'shipper_net' => $shipperNet,
             'drop_location_take' => $dropLocationTake,
             'markup_percent' => $markupPercent,
             'currency' => $tier->currency,

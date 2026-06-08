@@ -14,7 +14,7 @@ class CountryGroupPriceTier extends Model
         return [
             'max_weight_kg' => 'float',
             'customer_price' => 'float',
-            'shipper_price' => 'float',
+            'postal_cost' => 'float',
         ];
     }
 

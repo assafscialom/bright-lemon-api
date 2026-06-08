@@ -203,6 +203,7 @@ class AdminShipmentController extends Controller
                 $updates['shipper_take_amount'] = $split['shipper_take'];
                 $updates['drop_location_take_amount'] = $split['drop_location_take'];
                 $updates['markup_percent_at_quote'] = $split['markup_percent'];
+                $updates['postal_cost_amount'] = $split['postal_cost'];
             }
         }
 

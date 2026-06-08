@@ -64,8 +64,8 @@ Route::prefix('v1')->group(function () {
 
         // Country groups + per-tier pricing — the new internal pricing model
         // replacing the old IL Post live-quote call. Each group bundles
-        // destination countries; each tier sets customer_price + shipper_price
-        // per weight bracket.
+        // destination countries; each tier sets customer_price + postal_cost
+        // per weight bracket (Shipper/branch split comes from the branch markup%).
         Route::get('/country-groups', [AdminCountryGroupController::class, 'index']);
         Route::post('/country-groups', [AdminCountryGroupController::class, 'store']);
         Route::put('/country-groups/{countryGroup}', [AdminCountryGroupController::class, 'update']);
