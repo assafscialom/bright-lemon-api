@@ -35,4 +35,17 @@ return [
         ],
     ],
 
+    // Simasti SMS gateway (https://my.simasti.com) — replaces Twilio. When
+    // `enabled` is false (or creds missing) the OTP flow falls back to the demo
+    // code so local dev keeps working.
+    'simasti' => [
+        'enabled' => filter_var(env('SIMASTI_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'base_url' => env('SIMASTI_BASE_URL', 'https://my.simasti.com'),
+        'login' => env('SIMASTI_LOGIN'),
+        'password' => env('SIMASTI_PASSWORD'),
+        'sender' => env('SIMASTI_SENDER'),
+        'expire_hours' => (int) env('SIMASTI_EXPIRE_HOURS', 24),
+        'timeout' => (int) env('SIMASTI_TIMEOUT', 30),
+    ],
+
 ];

@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\ShippingDropLocation;
 use App\Models\User;
 use App\Services\AdminTokenService;
+use App\Services\OtpService;
 use App\Services\PhoneService;
+use App\Services\SimastiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,7 +16,7 @@ use Illuminate\Validation\Rule;
 
 class AuthOtpController extends Controller
 {
-    public function send(Request $request, PhoneService $phones): JsonResponse
+    public function send(Request $request, PhoneService $phones, OtpService $otp, SimastiService $simasti): JsonResponse
     {
         $data = $request->validate([
             'country_code' => ['required', 'string', 'max:8'],
@@ -34,6 +36,20 @@ class AuthOtpController extends Controller
             ], 403);
         }
 
+        // Real SMS via Simasti when configured; otherwise the demo code path.
+        if ($simasti->isConfigured()) {
+            if (! $otp->send($phone)) {
+                return response()->json([
+                    'message' => 'Could not send the verification code. Please try again.',
+                ], 502);
+            }
+
+            return response()->json([
+                'message' => 'Verification code sent.',
+                'phone' => $phone,
+            ]);
+        }
+
         return response()->json([
             'message' => 'Verification code sent.',
             'phone' => $phone,
@@ -42,7 +58,7 @@ class AuthOtpController extends Controller
         ]);
     }
 
-    public function verify(Request $request, PhoneService $phones, AdminTokenService $tokens): JsonResponse
+    public function verify(Request $request, PhoneService $phones, AdminTokenService $tokens, OtpService $otp, SimastiService $simasti): JsonResponse
     {
         $data = $request->validate([
             'country_code' => ['required', 'string', 'max:8'],
@@ -68,7 +84,11 @@ class AuthOtpController extends Controller
             }
         }
 
-        if (! hash_equals(config('brightlemon.demo_otp'), $data['code'])) {
+        $codeValid = $simasti->isConfigured()
+            ? $otp->verify($phone, $data['code'])
+            : hash_equals(config('brightlemon.demo_otp'), $data['code']);
+
+        if (! $codeValid) {
             return response()->json([
                 'message' => 'Invalid verification code.',
             ], 422);
@@ -108,7 +128,7 @@ class AuthOtpController extends Controller
                     .($adminDropLocation->city ? ', '.$adminDropLocation->city : '')
                 ),
             ] : null),
-            'demo' => true,
+            'demo' => ! $simasti->isConfigured(),
         ]);
     }
 
