@@ -28,7 +28,7 @@ class AuthOtpController extends Controller
 
         if (
             $data['context'] === 'admin'
-            && ! $this->findSuperAdminByPhone($phone)
+            && ! $this->findSuperAdminByPhone($phone, $data['country_code'], $data['mobile'])
             && ! $this->findAdminDropLocationByPhone($phone, $data['mobile'])
         ) {
             return response()->json([
@@ -72,7 +72,7 @@ class AuthOtpController extends Controller
         $adminDropLocation = null;
 
         if ($data['context'] === 'admin') {
-            $adminUser = $this->findSuperAdminByPhone($phone);
+            $adminUser = $this->findSuperAdminByPhone($phone, $data['country_code'], $data['mobile']);
             $adminDropLocation = $adminUser
                 ? null
                 : $this->findAdminDropLocationByPhone($phone, $data['mobile']);
@@ -132,10 +132,27 @@ class AuthOtpController extends Controller
         ]);
     }
 
-    private function findSuperAdminByPhone(string $phone): ?User
+    /**
+     * The superadmin behind a phone number, however it happens to be stored.
+     *
+     * This was an exact match on the one normalized string, which is why a
+     * superadmin saved as +972544522993 could not log in while branch users
+     * could: the branch lookup below already tolerated the trunk zero and this
+     * one did not. Matching every spelling costs one IN clause and removes a
+     * whole class of "the number looks right but nothing happens".
+     */
+    private function findSuperAdminByPhone(string $phone, ?string $countryCode = null, ?string $mobile = null): ?User
     {
+        $candidates = $countryCode !== null && $mobile !== null
+            ? (new PhoneService())->variants($countryCode, $mobile)
+            : [$phone];
+
+        if (! in_array($phone, $candidates, true)) {
+            $candidates[] = $phone;
+        }
+
         return User::query()
-            ->where('phone', $phone)
+            ->whereIn('phone', $candidates)
             ->where('role', User::ROLE_SUPERADMIN)
             ->first();
     }
