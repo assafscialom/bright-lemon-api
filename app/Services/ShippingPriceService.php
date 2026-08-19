@@ -6,6 +6,7 @@ use App\Models\CountryGroup;
 use App\Models\CountryGroupCountry;
 use App\Models\CountryGroupPriceTier;
 use App\Models\ShippingDropLocation;
+use App\Support\Settings;
 
 /**
  * Internal pricing for a new shipment.
@@ -24,8 +25,16 @@ use App\Models\ShippingDropLocation;
  *      change the customer/branch split — it only yields Shipper's net:
  *          shipper_net = shipper_take − postal_cost
  *
+ *   6. A VIP location has no counter — a courier collects from the sender —
+ *      and adds a flat collection fee to what the customer pays. The fee is
+ *      added to customer_price BEFORE the split, so the branch shares in it
+ *      exactly as it shares in the shipping price. It is not Shipper-only
+ *      revenue.
+ *
  * Example: customer 130, markup 30% → shipper_take 39, branch keeps 91.
  *          A 20% branch → shipper_take 26, branch keeps 104 (branch earns more).
+ *          The same 20% branch as VIP with a 130 fee → customer pays 260,
+ *          shipper_take 52, branch keeps 208.
  */
 class ShippingPriceService
 {
@@ -58,9 +67,16 @@ class ShippingPriceService
             return null;
         }
 
-        $markupPercent = $this->resolveMarkupPercent($dropLocationId);
+        $location = $dropLocationId ? ShippingDropLocation::find($dropLocationId) : null;
+        $markupPercent = $location ? (float) $location->markup_percent : 0.0;
 
-        $customerPrice = (float) $tier->customer_price;
+        // A VIP collection is an addition to the shipping price, not a
+        // replacement for it: the parcel still travels the same way, someone
+        // just fetches it first.
+        $vipFee = $location && $location->is_vip ? Settings::vipCollectionFee() : 0.0;
+
+        $shippingPrice = (float) $tier->customer_price;
+        $customerPrice = round($shippingPrice + $vipFee, 2);
         $postalCost = (float) $tier->postal_cost;
 
         // The customer always pays customer_price. Shipper's take is its share
@@ -72,6 +88,12 @@ class ShippingPriceService
 
         return [
             'customer_price' => $customerPrice,
+            // What the shipping itself costs, and what the VIP collection
+            // added. Kept apart so a receipt can name the fee rather than
+            // presenting a single number the customer cannot reconcile.
+            'shipping_price' => $shippingPrice,
+            'vip_fee' => $vipFee,
+            'is_vip' => $vipFee > 0,
             'postal_cost' => $postalCost,
             'shipper_take' => $shipperTake,
             'shipper_net' => $shipperNet,
@@ -126,12 +148,4 @@ class ShippingPriceService
             ->first();
     }
 
-    private function resolveMarkupPercent(?int $dropLocationId): float
-    {
-        if (! $dropLocationId) {
-            return 0.0;
-        }
-        $loc = ShippingDropLocation::find($dropLocationId);
-        return $loc ? (float) $loc->markup_percent : 0.0;
-    }
 }

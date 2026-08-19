@@ -80,8 +80,12 @@ class AdminShippingDropLocationController extends Controller
             'shipper_number' => ['nullable', 'string', 'max:40'],
             'name' => ['required', 'string', 'max:255'],
             'country' => ['required', 'string', 'max:120'],
-            'city' => ['required', 'string', 'max:120'],
-            'address_line_1' => ['required', 'string', 'max:255'],
+            // A VIP location is a courier collection, not a counter, so it
+            // has nowhere to be. City and street are required only when the
+            // customer is expected to walk in somewhere.
+            'is_vip' => ['nullable', 'boolean'],
+            'city' => [Rule::requiredIf(fn () => ! $request->boolean('is_vip')), 'nullable', 'string', 'max:120'],
+            'address_line_1' => [Rule::requiredIf(fn () => ! $request->boolean('is_vip')), 'nullable', 'string', 'max:255'],
             'address_line_2' => ['nullable', 'string', 'max:255'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],

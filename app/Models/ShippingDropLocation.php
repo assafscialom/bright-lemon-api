@@ -12,6 +12,7 @@ class ShippingDropLocation extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_vip' => 'boolean',
             'sort_order' => 'integer',
             'latitude' => 'float',
             'longitude' => 'float',

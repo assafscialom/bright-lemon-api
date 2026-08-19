@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AdminCountryGroupController;
 use App\Http\Controllers\Api\AdminGoodsTypeController;
 use App\Http\Controllers\Api\AdminShipmentController;
+use App\Http\Controllers\Api\AdminSettingsController;
 use App\Http\Controllers\Api\AdminShippingDropLocationController;
 use App\Http\Controllers\Api\AuthOtpController;
 use App\Http\Controllers\Api\PublicGoodsTypeController;
@@ -52,6 +53,10 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::prefix('admin')->middleware('superadmin')->group(function () {
+        // Global admin-editable values (currently the VIP collection fee).
+        Route::get('/settings', [AdminSettingsController::class, 'index']);
+        Route::put('/settings', [AdminSettingsController::class, 'update']);
+
         Route::get('/drop-locations', [AdminShippingDropLocationController::class, 'index']);
         Route::post('/drop-locations', [AdminShippingDropLocationController::class, 'store']);
         Route::put('/drop-locations/{dropLocation}', [AdminShippingDropLocationController::class, 'update']);

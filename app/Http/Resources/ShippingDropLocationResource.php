@@ -29,6 +29,7 @@ class ShippingDropLocationResource extends JsonResource
             'email' => $this->email,
             'opening_hours' => $this->opening_hours,
             'notes' => $this->notes,
+            'is_vip' => (bool) $this->is_vip,
             'is_active' => (bool) $this->is_active,
             'sort_order' => (int) $this->sort_order,
             'created_at' => $this->created_at?->toISOString(),
