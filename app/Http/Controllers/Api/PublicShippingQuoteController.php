@@ -31,12 +31,17 @@ class PublicShippingQuoteController extends Controller
             // internal split), but accepting it now keeps the door open for
             // future per-branch promo pricing without breaking the contract.
             'drop_location_id' => ['nullable', 'integer'],
+            // The send form asks the customer to choose between dropping the
+            // parcel off and having it collected, before any branch is picked.
+            // That choice is what decides the fee for them.
+            'is_vip' => ['nullable', 'boolean'],
         ]);
 
         $quote = $pricing->quote(
             (string) $data['country'],
             (float) $data['weight_kg'],
             isset($data['drop_location_id']) ? (int) $data['drop_location_id'] : null,
+            $request->boolean('is_vip'),
         );
 
         if (! $quote) {
@@ -48,6 +53,12 @@ class PublicShippingQuoteController extends Controller
         return response()->json([
             'data' => [
                 'customer_price' => $quote['customer_price'],
+                // Broken out so the form can show the customer what the
+                // collection added rather than a single number that does not
+                // match the price table they were just looking at.
+                'shipping_price' => $quote['shipping_price'],
+                'vip_fee' => $quote['vip_fee'],
+                'is_vip' => $quote['is_vip'],
                 'currency' => $quote['currency'],
             ],
         ]);

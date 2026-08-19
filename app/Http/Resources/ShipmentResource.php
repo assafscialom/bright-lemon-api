@@ -112,6 +112,8 @@ class ShipmentResource extends JsonResource
                 'weight' => $this->weight_label,
                 'weight_kg' => (float) $this->weight_kg,
                 'declared_value' => (float) $this->declared_value,
+                'is_vip' => (bool) $this->is_vip,
+                'vip_fee_amount' => $this->vip_fee_amount !== null ? (float) $this->vip_fee_amount : null,
                 'shipping_price' => $shippingPrice,
                 'shipping_price_currency' => $this->shipping_price_currency,
             ],

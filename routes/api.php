@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\PublicGoodsTypeController;
 use App\Http\Controllers\Api\PublicShippingDestinationController;
 use App\Http\Controllers\Api\PublicShippingDropLocationController;
 use App\Http\Controllers\Api\PublicShippingQuoteController;
+use App\Http\Controllers\Api\PublicVipFeeController;
 use App\Http\Controllers\Api\ShipmentController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,9 @@ Route::prefix('v1')->group(function () {
     // Returns the customer-facing amount for a (country, weight) pair using
     // the country-group tier tables managed by superadmin.
     Route::post('/shipping-quote', [PublicShippingQuoteController::class, 'quote']);
+
+    // The VIP collection fee the send form shows before the customer commits.
+    Route::get('/vip-fee', [PublicVipFeeController::class, 'show']);
 
     Route::prefix('admin')->middleware('admin')->group(function () {
         Route::get('/ems/status', [AdminShipmentController::class, 'emsStatus']);

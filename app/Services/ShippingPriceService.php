@@ -55,7 +55,12 @@ class ShippingPriceService
      * }|null  Returns null if the country isn't mapped to a group or no tier
      *         can hold the given weight.
      */
-    public function quote(string $countryNameOrCode, float $weightKg, ?int $dropLocationId): ?array
+    public function quote(
+        string $countryNameOrCode,
+        float $weightKg,
+        ?int $dropLocationId,
+        bool $vipRequested = false
+    ): ?array
     {
         $group = $this->resolveGroup($countryNameOrCode);
         if (! $group) {
@@ -73,7 +78,13 @@ class ShippingPriceService
         // A VIP collection is an addition to the shipping price, not a
         // replacement for it: the parcel still travels the same way, someone
         // just fetches it first.
-        $vipFee = $location && $location->is_vip ? Settings::vipCollectionFee() : 0.0;
+        //
+        // Two ways to arrive here. The admin can mark a location as VIP, and
+        // the customer can pick VIP in the send form before any location
+        // exists — which is the normal case, since that form never asks the
+        // customer to choose a branch. Either is enough.
+        $isVip = $vipRequested || (bool) ($location?->is_vip);
+        $vipFee = $isVip ? Settings::vipCollectionFee() : 0.0;
 
         $shippingPrice = (float) $tier->customer_price;
         $customerPrice = round($shippingPrice + $vipFee, 2);
@@ -93,7 +104,7 @@ class ShippingPriceService
             // presenting a single number the customer cannot reconcile.
             'shipping_price' => $shippingPrice,
             'vip_fee' => $vipFee,
-            'is_vip' => $vipFee > 0,
+            'is_vip' => $isVip,
             'postal_cost' => $postalCost,
             'shipper_take' => $shipperTake,
             'shipper_net' => $shipperNet,

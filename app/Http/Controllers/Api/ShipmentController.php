@@ -8,6 +8,7 @@ use App\Models\CountryGroupCountry;
 use App\Models\Shipment;
 use App\Services\PhoneService;
 use App\Services\ShipmentPricingService;
+use App\Support\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,8 @@ class ShipmentController extends Controller
 {
     public function index(Request $request, PhoneService $phones): AnonymousResourceCollection
     {
+        $isVip = $request->boolean('customs.is_vip');
+
         $data = $request->validate([
             'country_code' => ['nullable', 'string', 'max:8'],
             'mobile' => ['nullable', 'string', 'max:30'],
@@ -66,6 +69,10 @@ class ShipmentController extends Controller
             'customs.destination' => ['required', 'string', 'max:120'],
             'customs.weight' => ['required', 'string', 'max:40'],
             'customs.declared_value' => ['required', 'numeric', 'min:0', 'max:999999.99'],
+            // The customer chose collection over drop-off at the top of the
+            // form. Recorded here because the shipment is priced later by an
+            // admin, and by then the choice would be lost.
+            'customs.is_vip' => ['nullable', 'boolean'],
 
             'recipient.first_name' => ['required', 'string', 'max:100'],
             'recipient.middle_name' => ['nullable', 'string', 'max:100'],
@@ -114,6 +121,11 @@ class ShipmentController extends Controller
                 'weight_kg' => $pricing->weightKgForLabel($data['customs']['weight']),
                 'declared_value' => $data['customs']['declared_value'],
                 'shipping_price' => 0,
+                'is_vip' => $isVip,
+                // The fee as it stood when the customer agreed to it. Looking
+                // it up again at quote time would re-price old shipments
+                // whenever the admin changes the setting.
+                'vip_fee_amount' => $isVip ? Settings::vipCollectionFee() : null,
 
                 'recipient_first_name' => $data['recipient']['first_name'],
                 'recipient_middle_name' => $data['recipient']['middle_name'] ?? null,
