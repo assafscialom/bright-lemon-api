@@ -8,6 +8,7 @@ use App\Models\CountryGroupCountry;
 use App\Models\Shipment;
 use App\Services\PhoneService;
 use App\Services\ShipmentPricingService;
+use App\Services\VipCollectionDispatcher;
 use App\Support\Settings;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -141,6 +142,14 @@ class ShipmentController extends Controller
                 'recipient_phone_normalized' => $phones->normalize($data['recipient']['country_code'], $data['recipient']['mobile']),
             ]);
         });
+
+        // Book the courier for a VIP collection. After the transaction, and
+        // never allowed to fail the request: the shipment is already saved and
+        // the customer has already been told a representative will call.
+        if ($shipment->is_vip) {
+            (new VipCollectionDispatcher())->dispatch($shipment);
+            $shipment->refresh();
+        }
 
         return new ShipmentResource($shipment);
     }

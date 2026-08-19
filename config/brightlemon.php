@@ -5,6 +5,37 @@ return [
 
     'default_branch' => env('BRIGHT_LEMON_DEFAULT_BRANCH', 'Branch drop-off pending'),
 
+    /*
+    |----------------------------------------------------------------------
+    | LionWheel pickup tasks, via ISA Express
+    |----------------------------------------------------------------------
+    | Creating the courier task for a VIP collection. ISA Express fronts two
+    | LionWheel accounts and picks between them with a `destination` of
+    | `india` or `thailand` — so this integration only covers shipments to
+    | those two countries, and `destinations` below is the map that decides
+    | whether a VIP collection can be dispatched at all.
+    |
+    | Disabled by default: a half-configured integration that silently fails
+    | to dispatch a courier is worse than one that says it is switched off.
+    */
+    'lionwheel' => [
+        'enabled' => filter_var(env('BRIGHT_LEMON_LIONWHEEL_ENABLED', false), FILTER_VALIDATE_BOOL),
+        'url' => env(
+            'BRIGHT_LEMON_LIONWHEEL_URL',
+            'https://os.isa-express.com/api/integrations/lionwheel/create'
+        ),
+        'token' => env('BRIGHT_LEMON_LIONWHEEL_TOKEN'),
+        'timeout' => (int) env('BRIGHT_LEMON_LIONWHEEL_TIMEOUT', 30),
+
+        // ISO-2 destination code => the account ISA Express expects.
+        // A country absent from here cannot be collected, and the service
+        // refuses rather than guessing an account.
+        'destinations' => [
+            'IN' => 'india',
+            'TH' => 'thailand',
+        ],
+    ],
+
     'ems' => [
         'enabled' => filter_var(env('BRIGHT_LEMON_EMS_ENABLED', false), FILTER_VALIDATE_BOOL),
         'mode' => env('ISRAEL_POST_SDK_MODE', 'test'),
